@@ -49,7 +49,8 @@ TOrneo/
 │   ├── games/                      # /game/new/<id>, /game/save (POST)
 │   │   ├── __init__.py             # games_bp
 │   │   ├── routes.py
-│   │   └── services.py             # get_game_form_data(), save_game()
+│   │   ├── services.py             # get_game_form_data(), save_game(), get_game_detail()
+│   │   └── boxscore_services.py    # get_boxscore_form_data(), save_boxscore()
 │   ├── draft/                      # /draft
 │   │   ├── __init__.py             # draft_bp
 │   │   ├── routes.py
@@ -105,8 +106,12 @@ TOrneo/
 │   └── graphics/                   # Team logos (PNG), player photos, banners
 ├── schema.sql                      # Reference DDL for all tables (do NOT run on populated DB)
 ├── weekly.py                       # CLI: python weekly.py <week_num> — prints weekly summary
-├── create_tournament.py            # Generates Excel workbook with tournament info
-├── torneo.db                       # SQLite database (populated)
+├── scripts/
+│   └── create_tournament.py        # Generates Excel workbook with tournament info
+├── torneo.db                       # SQLite database (populated, git-ignored)
+├── Dockerfile                      # Python 3.12 + gunicorn production image
+├── docker-compose.yml              # Single-service with volume for DB persistence
+├── requirements.txt                # flask, openpyxl, gunicorn
 └── flask-sqlite-engineering-principles.md
 ```
 
