@@ -6,8 +6,7 @@ __pycache__/
 dist/
 build/
 
-# Database
-*.db
+# Database artifacts
 *.db-wal
 *.db-shm
 
