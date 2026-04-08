@@ -1,0 +1,87 @@
+"""Players blueprint services."""
+from __future__ import annotations
+
+import sqlite3
+
+from db import get_db
+
+
+def get_player(player_id: int) -> sqlite3.Row | None:
+    """Get player with team info."""
+    return get_db().execute("""
+        SELECT p.*, t.name as team_name, t.short_name as team_short,
+            t.color_primary, t.color_secondary, t.owner, t.logo_file
+        FROM players p JOIN teams t ON p.team_id = t.id
+        WHERE p.id = ?
+    """, (player_id,)).fetchone()
+
+
+def get_player_attrs(player_id: int) -> sqlite3.Row | None:
+    """Get player attributes."""
+    return get_db().execute(
+        "SELECT * FROM player_attributes WHERE player_id=?", (player_id,)
+    ).fetchone()
+
+
+def get_player_draft(player_id: int) -> sqlite3.Row | None:
+    """Get player draft info."""
+    return get_db().execute("""
+        SELECT dp.*, t.name as team_name, t.short_name
+        FROM draft_picks dp JOIN teams t ON dp.team_id = t.id
+        WHERE dp.player_id = ?
+    """, (player_id,)).fetchone()
+
+
+def get_batting_log(player_id: int) -> list[sqlite3.Row]:
+    """Get game-by-game batting stats."""
+    return get_db().execute("""
+        SELECT bs.*, g.id as game_id, s.game_num, s.phase,
+            ht.short_name as home_short, at.short_name as away_short,
+            ht.name as home_name, at.name as away_name,
+            g.home_runs, g.away_runs
+        FROM batting_stats bs
+        JOIN games g ON bs.game_id = g.id
+        JOIN schedule s ON g.schedule_id = s.id
+        JOIN teams ht ON s.home_team_id = ht.id
+        JOIN teams at ON s.away_team_id = at.id
+        WHERE bs.player_id = ?
+        ORDER BY s.game_num
+    """, (player_id,)).fetchall()
+
+
+def get_batting_totals(player_id: int) -> sqlite3.Row | None:
+    """Get accumulated batting totals."""
+    return get_db().execute("""
+        SELECT SUM(AB) as AB, SUM(R) as R, SUM(H) as H, SUM(doubles) as doubles,
+            SUM(triples) as triples, SUM(HR) as HR, SUM(RBI) as RBI,
+            SUM(BB) as BB, SUM(SO) as SO, SUM(SB) as SB,
+            CASE WHEN SUM(AB)>0 THEN ROUND(CAST(SUM(H) AS FLOAT)/SUM(AB), 3) ELSE 0 END as AVG
+        FROM batting_stats WHERE player_id = ?
+    """, (player_id,)).fetchone()
+
+
+def get_pitching_log(player_id: int) -> list[sqlite3.Row]:
+    """Get game-by-game pitching stats."""
+    return get_db().execute("""
+        SELECT ps.*, g.id as game_id, s.game_num, s.phase,
+            ht.short_name as home_short, at.short_name as away_short,
+            g.home_runs, g.away_runs
+        FROM pitching_stats ps
+        JOIN games g ON ps.game_id = g.id
+        JOIN schedule s ON g.schedule_id = s.id
+        JOIN teams ht ON s.home_team_id = ht.id
+        JOIN teams at ON s.away_team_id = at.id
+        WHERE ps.player_id = ?
+        ORDER BY s.game_num
+    """, (player_id,)).fetchall()
+
+
+def get_pitching_totals(player_id: int) -> sqlite3.Row | None:
+    """Get accumulated pitching totals."""
+    return get_db().execute("""
+        SELECT SUM(IP_outs) as IP_outs, SUM(H) as H, SUM(R) as R, SUM(ER) as ER,
+            SUM(BB) as BB, SUM(SO) as SO, SUM(W) as W, SUM(L) as L, SUM(SV) as SV,
+            SUM(HR_allowed) as HR_allowed,
+            CASE WHEN SUM(IP_outs)>0 THEN ROUND(CAST(SUM(ER)*27 AS FLOAT)/SUM(IP_outs), 2) ELSE 0 END as ERA
+        FROM pitching_stats WHERE player_id = ?
+    """, (player_id,)).fetchone()

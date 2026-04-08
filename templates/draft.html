@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from 'components/team_link.html' import team_link %}
+{% from 'components/owner_badge.html' import owner_badge %}
+{% block title %}Draft - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+<h1>Draft</h1>
+
+<h2>Orden del Draft</h2>
+<table>
+    <thead>
+        <tr><th class="num">#</th><th>Equipo</th><th>Jugador</th><th class="num">Pre</th><th class="num">Post</th><th class="num">Mejora</th></tr>
+    </thead>
+    <tbody>
+    {% for t in teams %}
+        {% set change = t.rank_pre_draft - t.rank_post_draft %}
+        <tr>
+            <td class="num">{{ loop.index }}</td>
+            <td>{{ team_link(t.short_name, t.name, t.color_primary, t.logo_file) }}</td>
+            <td>{{ owner_badge(t.owner) }}</td>
+            <td class="num">{{ t.rank_pre_draft }}</td>
+            <td class="num">{{ t.rank_post_draft }}</td>
+            <td class="num {% if change > 0 %}change-up{% elif change < 0 %}change-down{% else %}change-same{% endif %}">
+                {% if change > 0 %}&#9650; {{ change }}{% elif change < 0 %}&#9660; {{ change|abs }}{% else %}—{% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+<h2>Selecciones (24 picks)</h2>
+<table>
+    <thead>
+        <tr><th class="num">Pick</th><th class="num">Rda</th><th>Equipo</th><th>Jugador</th><th>Pos</th></tr>
+    </thead>
+    <tbody>
+    {% for p in picks %}
+        <tr>
+            <td class="num">{{ p.pick_num }}</td>
+            <td class="num">{{ p.round }}</td>
+            <td>{{ team_link(p.short_name, p.team_name, p.color_primary, p.logo_file) }}</td>
+            <td>
+                {% if p.player_id %}
+                <a href="{{ url_for('players.player', player_id=p.player_id) }}" class="drafted">{{ p.player_name }}</a>
+                {% else %}
+                {{ p.player_name }}
+                {% endif %}
+            </td>
+            <td>{{ p.position_drafted }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

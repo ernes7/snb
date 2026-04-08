@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% from 'components/pitcher_credits.html' import pitcher_credits %}
+{% block title %}Calendario - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+<h1>Temporada Regular</h1>
+<p style="color: var(--muted); margin-bottom: 1rem;">{{ played }}/96 juegos completados</p>
+
+{% for week_num, week_games in weeks %}
+<div class="schedule-week">
+    <h3 class="week-header">Semana {{ week_num }}</h3>
+    <div class="schedule-list">
+    {% for g in week_games %}
+        <div class="sched-row {% if g.home_runs is not none %}played{% endif %} {% if g.home_runs is not none and g.home_runs > g.away_runs %}home-win{% elif g.home_runs is not none and g.away_runs > g.home_runs %}away-win{% endif %}">
+            <div class="sched-num">#{{ g.game_num }}</div>
+            <div class="sched-matchup">
+                <div class="sched-team home">
+                    <span class="sched-tag">LOCAL</span>
+                    <a href="{{ url_for('teams.team', short=g.home_short) }}" class="sched-name" style="color: {{ g.home_color }}">{{ g.home_name }}</a>
+                    {% if g.home_logo %}
+                    <img src="{{ url_for('static', filename='graphics/' + g.home_logo) }}" class="sched-logo">
+                    {% endif %}
+                </div>
+                <div class="sched-vs">
+                    {% if g.home_runs is not none %}
+                        <a href="{{ url_for('games.game_detail', game_id=g.game_id) }}" style="text-decoration: none; display: flex; align-items: center; gap: 0.3rem;">
+                        <span class="sched-score {% if g.home_runs > g.away_runs %}winner{% endif %}" style="{% if g.home_runs > g.home_runs %}color: {{ g.home_color }}{% endif %}">{{ g.home_runs }}</span>
+                        <span class="sched-dash">&mdash;</span>
+                        <span class="sched-score {% if g.away_runs > g.home_runs %}winner{% endif %}" style="{% if g.away_runs > g.home_runs %}color: {{ g.away_color }}{% endif %}">{{ g.away_runs }}</span>
+                        </a>
+                    {% else %}
+                        <span class="sched-vs-text">VS</span>
+                    {% endif %}
+                </div>
+                <div class="sched-team away">
+                    {% if g.away_logo %}
+                    <img src="{{ url_for('static', filename='graphics/' + g.away_logo) }}" class="sched-logo">
+                    {% endif %}
+                    <a href="{{ url_for('teams.team', short=g.away_short) }}" class="sched-name" style="color: {{ g.away_color }}">{{ g.away_name }}</a>
+                    <span class="sched-tag">VISIT</span>
+                </div>
+            </div>
+            <div class="sched-details">
+                {% if g.home_runs is not none %}
+                    <span class="sched-pitchers">
+                        {{ pitcher_credits(g.wp_name, g.lp_name) }}
+                    </span>
+                    <a href="{{ url_for('games.game_new', schedule_id=g.id) }}" class="btn btn-sm btn-edit">Editar</a>
+                {% else %}
+                    <a href="{{ url_for('games.game_new', schedule_id=g.id) }}" class="btn btn-sm btn-play">Jugar</a>
+                {% endif %}
+            </div>
+            {% if g.home_runs is none %}
+            {% set home_unav = unavailable.get('%d_%d'|format(g.id, g.home_team_id), []) %}
+            {% set away_unav = unavailable.get('%d_%d'|format(g.id, g.away_team_id), []) %}
+            {% if home_unav or away_unav %}
+            <div class="sched-unavailable">
+                {% if home_unav %}
+                <div class="unav-team">
+                    <span class="unav-label" style="color: {{ g.home_color }}">{{ g.home_short }} no disponibles:</span>
+                    {% for p in home_unav %}
+                    <span class="unav-pitcher" title="{{ p.pitches }} lanz, descansa {{ p.rest_games }} juegos ({{ p.games_rested }} cumplidos)">{{ p.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% if away_unav %}
+                <div class="unav-team">
+                    <span class="unav-label" style="color: {{ g.away_color }}">{{ g.away_short }} no disponibles:</span>
+                    {% for p in away_unav %}
+                    <span class="unav-pitcher" title="{{ p.pitches }} lanz, descansa {{ p.rest_games }} juegos ({{ p.games_rested }} cumplidos)">{{ p.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    {% endfor %}
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

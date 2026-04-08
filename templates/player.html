@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% from 'components/stat_box.html' import stat_box %}
+{% from 'components/section_label.html' import section_label %}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/empty_state.html' import empty_state %}
+{% block title %}{{ player.name }} - {{ player.team_name }}{% endblock %}
+{% block content %}
+<div class="player-header">
+    {% if player.photo_file %}
+    <div class="player-photo-wrapper">
+        <img src="{{ url_for('static', filename='graphics/' + player.photo_file) }}" alt="{{ player.name }}">
+        <div class="overlay"></div>
+    </div>
+    {% endif %}
+    <div>
+        <div style="color: var(--muted); font-size: 0.85rem;">
+            {{ player.position }} | {{ player.role|upper }}
+            {% if player.is_drafted %} | <span class="drafted">DRAFTED</span>{% endif %}
+        </div>
+        <h1 style="margin-bottom: 0.2rem; color: {{ player.color_primary }}">
+            {{ player.full_name or player.name }}
+        </h1>
+        <div>
+            {{ logo_img(player.logo_file, css_class='inline-logo', alt=player.team_name) }}
+            <a href="{{ url_for('teams.team', short=player.team_short) }}" style="color: {{ player.color_primary }}; font-weight: 600;">
+                {{ player.team_name }}
+            </a>
+            <span style="color: var(--muted);">
+                ({{ player.owner }})
+            </span>
+        </div>
+        {% if player.role in ('lineup', 'bench') %}
+        <div style="margin-top: 0.3rem; color: var(--muted); font-size: 0.85rem;">
+            Batea: {{ player.bats_throws }}
+            {% if player.lineup_order %} | Orden: #{{ player.lineup_order }}{% endif %}
+        </div>
+        {% else %}
+        <div style="margin-top: 0.3rem; color: var(--muted); font-size: 0.85rem;">
+            Tira: {{ player.bats_throws }}
+            {% if player.bullpen_role %} | Rol: {{ player.bullpen_role }}{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if draft %}
+<div class="card" style="border-left: 4px solid var(--red);">
+    {{ section_label('Draft') }}
+    Pick #{{ draft.pick_num }} (Ronda {{ draft.round }}) — Seleccionado como {{ draft.position_drafted }}
+</div>
+{% endif %}
+
+{% if attrs %}
+<h2>Atributos</h2>
+<div class="card">
+    {% if attrs.power_vs_l is not none %}
+    <div style="margin-bottom: 0.8rem;">
+        {{ stat_box(attrs.speed, 'Velocidad') }}
+    </div>
+    <div style="display: flex; gap: 2rem;">
+        <div>
+            {{ section_label('vs Zurdos') }}
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem;">
+                {{ stat_box(attrs.power_vs_l, 'Poder') }}
+                {{ stat_box(attrs.contact_vs_l, 'Contacto') }}
+            </div>
+        </div>
+        <div>
+            {{ section_label('vs Derechos') }}
+            <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem;">
+                {{ stat_box(attrs.power_vs_r, 'Poder') }}
+                {{ stat_box(attrs.contact_vs_r, 'Contacto') }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% if attrs.stamina is not none %}
+    <div style="margin-bottom: 0.8rem;">
+        {{ section_label('General') }}
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem;">
+            {{ stat_box(attrs.stamina, 'Estamina') }}
+        </div>
+    </div>
+    <div>
+        {{ section_label('Pitcheos') }}
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem; flex-wrap: wrap;">
+            {% if attrs.fastball %}{{ stat_box(attrs.fastball, 'R4C') }}{% endif %}
+            {% if attrs.slider %}{{ stat_box(attrs.slider, 'SLD') }}{% endif %}
+            {% if attrs.curveball %}{{ stat_box(attrs.curveball, 'CRV') }}{% endif %}
+            {% if attrs.sinker %}{{ stat_box(attrs.sinker, 'SNK') }}{% endif %}
+            {% if attrs.changeup %}{{ stat_box(attrs.changeup, 'TND') }}{% endif %}
+            {% if attrs.splitter %}{{ stat_box(attrs.splitter, 'SPL') }}{% endif %}
+            {% if attrs.screwball %}{{ stat_box(attrs.screwball, 'SCR') }}{% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+{# Batting stats #}
+{% if bat_totals and bat_totals.AB and bat_totals.AB > 0 %}
+<h2>Estadisticas de Bateo</h2>
+<div class="card">
+    {{ stat_box("%.3f"|format(bat_totals.AVG), 'AVG') }}
+    {{ stat_box(bat_totals.AB, 'AB') }}
+    {{ stat_box(bat_totals.H, 'H') }}
+    {{ stat_box(bat_totals.HR, 'HR') }}
+    {{ stat_box(bat_totals.RBI, 'RBI') }}
+    {{ stat_box(bat_totals.R, 'R') }}
+    {{ stat_box(bat_totals.BB, 'BB') }}
+    {{ stat_box(bat_totals.SO, 'SO') }}
+    {{ stat_box(bat_totals.SB, 'SB') }}
+</div>
+
+<h2>Juego por Juego (Bateo)</h2>
+<table>
+    <thead>
+        <tr><th class="num">#</th><th>vs</th><th class="num">AB</th><th class="num">R</th><th class="num">H</th>
+        <th class="num">2B</th><th class="num">3B</th><th class="num">HR</th><th class="num">RBI</th>
+        <th class="num">BB</th><th class="num">SO</th></tr>
+    </thead>
+    <tbody>
+    {% for bg in bat_games %}
+    <tr>
+        <td class="num">{{ bg.game_num }}</td>
+        <td>{{ bg.home_short }} vs {{ bg.away_short }}</td>
+        <td class="num">{{ bg.AB }}</td>
+        <td class="num">{{ bg.R }}</td>
+        <td class="num">{{ bg.H }}</td>
+        <td class="num">{{ bg.doubles }}</td>
+        <td class="num">{{ bg.triples }}</td>
+        <td class="num">{{ bg.HR }}</td>
+        <td class="num">{{ bg.RBI }}</td>
+        <td class="num">{{ bg.BB }}</td>
+        <td class="num">{{ bg.SO }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{# Pitching stats #}
+{% if pitch_totals and pitch_totals.IP_outs and pitch_totals.IP_outs > 0 %}
+<h2>Estadisticas de Pitcheo</h2>
+<div class="card">
+    {{ stat_box("%.2f"|format(pitch_totals.ERA), 'ERA') }}
+    {{ stat_box(format_ip(pitch_totals.IP_outs), 'IP') }}
+    {{ stat_box(pitch_totals.W ~ '-' ~ pitch_totals.L, 'G-P') }}
+    {{ stat_box(pitch_totals.SV, 'SV') }}
+    {{ stat_box(pitch_totals.SO, 'SO') }}
+    {{ stat_box(pitch_totals.H, 'H') }}
+    {{ stat_box(pitch_totals.BB, 'BB') }}
+    {{ stat_box(pitch_totals.ER, 'ER') }}
+</div>
+
+<h2>Juego por Juego (Pitcheo)</h2>
+<table>
+    <thead>
+        <tr><th class="num">#</th><th>vs</th><th class="num">IP</th><th class="num">H</th><th class="num">R</th>
+        <th class="num">ER</th><th class="num">BB</th><th class="num">SO</th><th class="num">Lanz</th><th class="num">Dec</th></tr>
+    </thead>
+    <tbody>
+    {% for pg in pitch_games %}
+    <tr>
+        <td class="num">{{ pg.game_num }}</td>
+        <td>{{ pg.home_short }} vs {{ pg.away_short }}</td>
+        <td class="num">{{ format_ip(pg.IP_outs) }}</td>
+        <td class="num">{{ pg.H }}</td>
+        <td class="num">{{ pg.R }}</td>
+        <td class="num">{{ pg.ER }}</td>
+        <td class="num">{{ pg.BB }}</td>
+        <td class="num">{{ pg.SO }}</td>
+        <td class="num">{{ pg.pitches if pg.pitches else '' }}</td>
+        <td class="num">
+            {% if pg.W %}W{% elif pg.L %}L{% elif pg.SV %}SV{% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if (not bat_games) and (not pitch_games) %}
+{{ empty_state('No hay estadisticas aun. Los datos aparecen cuando se registran juegos.') }}
+{% endif %}
+{% endblock %}

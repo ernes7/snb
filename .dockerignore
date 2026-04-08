@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.db
+*.db-wal
+*.db-shm
+screenshots/
+Games/
+.git/
+.env
+*.xlsx
+scripts/

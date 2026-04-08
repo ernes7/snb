@@ -1,0 +1,6 @@
+{# Team/player logo image #}
+{% macro logo_img(logo_file, css_class='inline-logo', alt='') %}
+{% if logo_file %}
+<img src="{{ url_for('static', filename='graphics/' + logo_file) }}" class="{{ css_class }}" alt="{{ alt }}">
+{% endif %}
+{% endmacro %}

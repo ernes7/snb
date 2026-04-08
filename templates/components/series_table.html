@@ -1,0 +1,30 @@
+{# Playoff series card with game table #}
+{% macro series_table(title, games) %}
+<h2>{{ title }}</h2>
+<div class="series-card">
+    {% if games and games[0].home_name %}
+        <h3>{{ games[0].home_name }} vs {{ games[0].away_name }}</h3>
+    {% else %}
+        <h3 class="game-unplayed">Por definir</h3>
+    {% endif %}
+    <table>
+        <thead><tr><th class="num">J</th><th>Local</th><th>Visit</th><th class="num">M</th><th>PG</th></tr></thead>
+        <tbody>
+        {% for g in games %}
+        <tr>
+            <td class="num">{{ g.series_game }}</td>
+            <td>{{ g.home_short or '—' }}</td>
+            <td>{{ g.away_short or '—' }}</td>
+            {% if g.home_runs is not none %}
+            <td class="num">{{ g.home_runs }}-{{ g.away_runs }}</td>
+            <td>{{ g.wp_name or '' }}</td>
+            {% else %}
+            <td class="num game-unplayed">—</td>
+            <td></td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}

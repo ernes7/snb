@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/series_table.html' import series_table %}
+{% block title %}Playoffs - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+<h1>Playoffs</h1>
+
+<p style="color: var(--muted); margin-bottom: 1rem;">
+    Top 4 clasifican. Si 2 equipos del mismo jugador se enfrentan, ese jugador elige al ganador.
+    Todas las series son al mejor de 5.
+</p>
+
+{% if standings %}
+<h2>Proyeccion Actual</h2>
+<div class="card">
+    {% for s in standings[:4] %}
+    <span style="margin-right: 1.5rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+        {{ loop.index }}.
+        {{ logo_img(s.logo_file, css_class='inline-logo-sm') }}
+        <span style="color: {{ s.color_primary }}; font-weight: 600;">{{ s.name }}</span>
+        <span style="color: var(--muted);">({{ s.wins }}-{{ s.losses }})</span>
+    </span>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="bracket">
+    <div class="bracket-round">
+        {{ series_table('Semifinal A', semi_a) }}
+        {{ series_table('Semifinal B', semi_b) }}
+    </div>
+
+    <div class="bracket-round">
+        {{ series_table('Final', final) }}
+    </div>
+</div>
+{% endblock %}

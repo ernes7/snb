@@ -1,0 +1,6 @@
+{# Pitcher win/loss/save credits line #}
+{% macro pitcher_credits(wp_name, lp_name, sv_name=None) %}
+{% if wp_name %}PG: {{ wp_name }}{% endif %}
+{% if lp_name %} &middot; PP: {{ lp_name }}{% endif %}
+{% if sv_name %} &middot; SV: {{ sv_name }}{% endif %}
+{% endmacro %}

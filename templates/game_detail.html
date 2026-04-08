@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/pitcher_credits.html' import pitcher_credits %}
+{% block title %}Juego #{{ game.game_num }} - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+
+<h1>Juego #{{ game.game_num }}</h1>
+
+{# --- Linescore --- #}
+<div class="card" style="overflow-x: auto;">
+<table class="linescore">
+    <thead>
+        <tr>
+            <th></th>
+            {% if game.away_linescore %}
+                {% for _ in game.away_linescore.split(',') %}
+                <th class="num">{{ loop.index }}</th>
+                {% endfor %}
+            {% endif %}
+            <th class="num" style="border-left: 2px solid var(--border);">C</th>
+            <th class="num">H</th>
+            <th class="num">E</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for label, short, color, logo, linescore, runs, hits, errors, is_winner in [
+            ('VISIT', game.away_short, game.away_color, game.away_logo, game.away_linescore, game.away_runs, game.away_hits, game.away_errors, game.away_runs > game.home_runs),
+            ('LOCAL', game.home_short, game.home_color, game.home_logo, game.home_linescore, game.home_runs, game.home_hits, game.home_errors, game.home_runs > game.away_runs),
+        ] %}
+        <tr>
+            <td style="display: flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
+                {{ logo_img(logo) }}
+                <span style="color: {{ color }}; font-weight: 600;">{{ short }}</span>
+            </td>
+            {% if linescore %}
+                {% for inn in linescore.split(',') %}
+                <td class="num" style="{% if inn|int > 0 %}font-weight:700{% endif %}">{{ inn }}</td>
+                {% endfor %}
+            {% endif %}
+            <td class="num" style="border-left: 2px solid var(--border); font-weight: 700; {% if is_winner %}color: {{ color }}{% endif %}">{{ runs }}</td>
+            <td class="num" style="font-weight: 600;">{{ hits }}</td>
+            <td class="num">{{ errors }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<div style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0 1.5rem;">
+    {{ pitcher_credits(game.wp_name, game.lp_name, game.sv_name) }}
+</div>
+
+{# --- Batting --- #}
+{% for label, color, batting in [
+    (game.away_name, game.away_color, away_batting),
+    (game.home_name, game.home_color, home_batting),
+] %}
+{% if batting %}
+<h2 style="color: {{ color }}; font-size: 1rem; margin-top: 1.5rem;">{{ label }} - Bateo</h2>
+<table class="stats-table">
+    <thead>
+        <tr>
+            <th>Jugador</th><th>POS</th>
+            <th class="num">VB</th><th class="num">C</th><th class="num">H</th>
+            <th class="num">2B</th><th class="num">3B</th><th class="num">HR</th>
+            <th class="num">CI</th><th class="num">BB</th><th class="num">SO</th>
+            <th class="num">BR</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for b in batting %}
+        <tr>
+            <td><a href="{{ url_for('players.player', player_id=b.player_id) }}">{{ b.name }}</a></td>
+            <td>{{ b.position }}</td>
+            <td class="num">{{ b.AB }}</td><td class="num">{{ b.R }}</td><td class="num">{{ b.H }}</td>
+            <td class="num">{{ b.doubles }}</td><td class="num">{{ b.triples }}</td><td class="num">{{ b.HR }}</td>
+            <td class="num">{{ b.RBI }}</td><td class="num">{{ b.BB }}</td><td class="num">{{ b.SO }}</td>
+            <td class="num">{{ b.SB }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endfor %}
+
+{# --- Pitching --- #}
+{% for label, color, pitching in [
+    (game.away_name, game.away_color, away_pitching),
+    (game.home_name, game.home_color, home_pitching),
+] %}
+{% if pitching %}
+<h2 style="color: {{ color }}; font-size: 1rem; margin-top: 1.5rem;">{{ label }} - Pitcheo</h2>
+<table class="stats-table">
+    <thead>
+        <tr>
+            <th>Jugador</th>
+            <th class="num">IL</th><th class="num">H</th><th class="num">C</th>
+            <th class="num">CL</th><th class="num">BB</th><th class="num">SO</th>
+            <th class="num">HR</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in pitching %}
+        <tr>
+            <td>
+                <a href="{{ url_for('players.player', player_id=p.player_id) }}">{{ p.name }}</a>
+                {% if p.W %}<span class="badge-w">G</span>{% endif %}
+                {% if p.L %}<span class="badge-l">P</span>{% endif %}
+                {% if p.SV %}<span class="badge-sv">SV</span>{% endif %}
+            </td>
+            <td class="num">{{ format_ip(p.IP_outs) }}</td>
+            <td class="num">{{ p.H }}</td><td class="num">{{ p.R }}</td>
+            <td class="num">{{ p.ER }}</td><td class="num">{{ p.BB }}</td>
+            <td class="num">{{ p.SO }}</td><td class="num">{{ p.HR_allowed }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+{% endfor %}
+
+<div style="margin-top: 1.5rem;">
+    <a href="{{ url_for('schedule.schedule') }}" class="btn btn-sm">&larr; Calendario</a>
+</div>
+
+{% endblock %}

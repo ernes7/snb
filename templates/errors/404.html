@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}No encontrado - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+<div class="card" style="text-align: center; padding: 3rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 0.5rem;">404</h1>
+    <p style="color: var(--muted); margin-bottom: 1.5rem;">La pagina que buscas no existe.</p>
+    <a href="{{ url_for('main.index') }}" class="btn btn-play">Volver al inicio</a>
+</div>
+{% endblock %}

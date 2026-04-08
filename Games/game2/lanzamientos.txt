@@ -1,0 +1,9 @@
+SSP:
+I. Jimenez 47
+Sosa 29
+Licor 4
+
+IND:
+J. Garcia 49
+Rivero 22
+Socarras 1

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from 'components/team_link.html' import team_link %}
+{% from 'components/owner_badge.html' import owner_badge %}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/game_score.html' import game_score %}
+{% from 'components/pitcher_credits.html' import pitcher_credits %}
+{% block title %}Clasificacion - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+<h1>Clasificacion</h1>
+<table class="standings">
+    <thead>
+        <tr>
+            <th class="num">#</th>
+            <th>Equipo</th>
+            <th>Jugador</th>
+            <th class="num">G</th>
+            <th class="num">P</th>
+            <th class="num">PCT</th>
+            <th class="num">GB</th>
+            <th class="num">CA</th>
+            <th class="num">CL</th>
+            <th class="num">DIF</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in standings %}
+        <tr>
+            <td class="num">{{ loop.index }}</td>
+            <td>{{ team_link(s.short_name, s.name, s.color_primary, s.logo_file) }}</td>
+            <td>{{ owner_badge(s.owner) }}</td>
+            <td class="num win">{{ s.wins }}</td>
+            <td class="num loss">{{ s.losses }}</td>
+            <td class="num pct">{{ s.pct }}</td>
+            <td class="num gb">{{ s.gb }}</td>
+            <td class="num">{{ s.rs }}</td>
+            <td class="num">{{ s.ra }}</td>
+            <td class="num">{{ '+' if s.diff > 0 else '' }}{{ s.diff }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if recent %}
+<h2>Ultimos Juegos</h2>
+<div class="card">
+    {% for g in recent %}
+    <div class="recent-game">
+        <a href="{{ url_for('games.game_detail', game_id=g.id) }}" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+            <span style="color: var(--muted); font-size: 0.78rem; min-width: 28px;">#{{ g.game_num }}</span>
+            {{ logo_img(g.home_logo) }}
+            <span style="color: {{ g.home_color }}; font-weight: 600;">{{ g.home_name }}</span>
+            {{ game_score(g.home_runs, g.away_runs, g.home_color, g.away_color) }}
+            <span style="color: {{ g.away_color }}; font-weight: 600;">{{ g.away_name }}</span>
+            {{ logo_img(g.away_logo) }}
+        </a>
+        <span style="color: var(--muted); font-size: 0.78rem;">
+            {{ pitcher_credits(g.wp_name, g.lp_name) }}
+        </span>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

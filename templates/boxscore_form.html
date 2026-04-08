@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Box Score - Juego #{{ game.game_num }}{% endblock %}
+{% block content %}
+<h1>
+    Box Score — Juego #{{ game.game_num }}:
+    <span style="color: {{ game.home_color }}">{{ game.home_short }}</span>
+    {{ game.home_runs }} - {{ game.away_runs }}
+    <span style="color: {{ game.away_color }}">{{ game.away_short }}</span>
+</h1>
+<p style="color: var(--muted); margin-bottom: 1rem;">
+    Ingresa las estadisticas individuales de cada jugador. Los campos en 0 se ignoran.
+</p>
+
+<form method="POST" action="{{ url_for('games.boxscore_save', game_id=game.id) }}">
+
+    {# ── HOME TEAM BATTING ─── #}
+    <div class="card" style="border-left: 4px solid {{ game.home_color }}">
+        <h2 style="margin-top:0; color: {{ game.home_color }}">{{ game.home_name }} — Bateo</h2>
+        <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Jugador</th>
+                    <th class="num">AB</th><th class="num">R</th><th class="num">H</th>
+                    <th class="num">2B</th><th class="num">3B</th><th class="num">HR</th>
+                    <th class="num">RBI</th><th class="num">BB</th><th class="num">SO</th>
+                    <th class="num">SB</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in home_batters %}
+            {% set bs = existing_bat.get(p.id, {}) %}
+            <tr>
+                <td>{{ p.name }}</td>
+                {% for f in ['AB','R','H','doubles','triples','HR','RBI','BB','SO','SB'] %}
+                <td class="num"><input type="number" name="bat__{{ p.id }}__{{ f }}" min="0" value="{{ bs.get(f, 0) }}" class="box-input"></td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {# ── AWAY TEAM BATTING ─── #}
+    <div class="card" style="border-left: 4px solid {{ game.away_color }}">
+        <h2 style="margin-top:0; color: {{ game.away_color }}">{{ game.away_name }} — Bateo</h2>
+        <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Jugador</th>
+                    <th class="num">AB</th><th class="num">R</th><th class="num">H</th>
+                    <th class="num">2B</th><th class="num">3B</th><th class="num">HR</th>
+                    <th class="num">RBI</th><th class="num">BB</th><th class="num">SO</th>
+                    <th class="num">SB</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in away_batters %}
+            {% set bs = existing_bat.get(p.id, {}) %}
+            <tr>
+                <td>{{ p.name }}</td>
+                {% for f in ['AB','R','H','doubles','triples','HR','RBI','BB','SO','SB'] %}
+                <td class="num"><input type="number" name="bat__{{ p.id }}__{{ f }}" min="0" value="{{ bs.get(f, 0) }}" class="box-input"></td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {# ── HOME TEAM PITCHING ─── #}
+    <div class="card" style="border-left: 4px solid {{ game.home_color }}">
+        <h2 style="margin-top:0; color: {{ game.home_color }}">{{ game.home_name }} — Pitcheo</h2>
+        <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Pitcher</th>
+                    <th class="num">IP(o)</th><th class="num">H</th><th class="num">R</th>
+                    <th class="num">ER</th><th class="num">BB</th><th class="num">SO</th>
+                    <th class="num">HR</th><th class="num">Lanz</th>
+                    <th class="num">W</th><th class="num">L</th><th class="num">SV</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in home_pitchers %}
+            {% set ps = existing_pit.get(p.id, {}) %}
+            <tr>
+                <td>{{ p.name }}</td>
+                {% for f in ['IP_outs','H','R','ER','BB','SO','HR_allowed','pitches'] %}
+                <td class="num"><input type="number" name="pit__{{ p.id }}__{{ f }}" min="0" value="{{ ps.get(f, 0) }}" class="box-input"></td>
+                {% endfor %}
+                <td class="num"><input type="checkbox" name="pit__{{ p.id }}__W" value="1" {{ 'checked' if ps.get('W') else ('checked' if game.winning_pitcher_id == p.id and not existing_pit else '') }}></td>
+                <td class="num"><input type="checkbox" name="pit__{{ p.id }}__L" value="1" {{ 'checked' if ps.get('L') else ('checked' if game.losing_pitcher_id == p.id and not existing_pit else '') }}></td>
+                <td class="num"><input type="checkbox" name="pit__{{ p.id }}__SV" value="1" {{ 'checked' if ps.get('SV') else ('checked' if game.save_pitcher_id == p.id and not existing_pit else '') }}></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    {# ── AWAY TEAM PITCHING ─── #}
+    <div class="card" style="border-left: 4px solid {{ game.away_color }}">
+        <h2 style="margin-top:0; color: {{ game.away_color }}">{{ game.away_name }} — Pitcheo</h2>
+        <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Pitcher</th>
+                    <th class="num">IP(o)</th><th class="num">H</th><th class="num">R</th>
+                    <th class="num">ER</th><th class="num">BB</th><th class="num">SO</th>
+                    <th class="num">HR</th><th class="num">Lanz</th>
+                    <th class="num">W</th><th class="num">L</th><th class="num">SV</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for p in away_pitchers %}
+            {% set ps = existing_pit.get(p.id, {}) %}
+            <tr>
+                <td>{{ p.name }}</td>
+                {% for f in ['IP_outs','H','R','ER','BB','SO','HR_allowed','pitches'] %}
+                <td class="num"><input type="number" name="pit__{{ p.id }}__{{ f }}" min="0" value="{{ ps.get(f, 0) }}" class="box-input"></td>
+                {% endfor %}
+                <td class="num"><input type="checkbox" name="pit__{{ p.id }}__W" value="1" {{ 'checked' if ps.get('W') else ('checked' if game.winning_pitcher_id == p.id and not existing_pit else '') }}></td>
+                <td class="num"><input type="checkbox" name="pit__{{ p.id }}__L" value="1" {{ 'checked' if ps.get('L') else ('checked' if game.losing_pitcher_id == p.id and not existing_pit else '') }}></td>
+                <td class="num"><input type="checkbox" name="pit__{{ p.id }}__SV" value="1" {{ 'checked' if ps.get('SV') else ('checked' if game.save_pitcher_id == p.id and not existing_pit else '') }}></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <button type="submit" class="btn btn-play" style="padding: 0.6rem 2rem; font-size: 1rem;">
+            Guardar Box Score
+        </button>
+        <a href="{{ url_for('schedule.schedule') }}" class="btn" style="padding: 0.6rem 2rem; font-size: 1rem;">
+            Omitir
+        </a>
+    </div>
+</form>
+{% endblock %}

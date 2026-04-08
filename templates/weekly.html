@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/pitcher_credits.html' import pitcher_credits %}
+{% from 'components/empty_state.html' import empty_state %}
+{% block title %}Semana {{ week_num }} - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+<h1>Resumen Semanal &mdash; Semana {{ week_num }}</h1>
+
+<h2>Resultados</h2>
+<div class="card">
+    {% for g in games %}
+    <div class="recent-game">
+        <span style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: var(--muted); font-size: 0.78rem; min-width: 28px;">#{{ g.game_num }}</span>
+            <span style="font-weight: 600;">{{ g.home_short }}</span>
+            <span class="game-score" style="{% if g.home_runs > g.away_runs %}font-weight:700{% endif %}">{{ g.home_runs }}</span>
+            <span style="color: var(--border);">&mdash;</span>
+            <span class="game-score" style="{% if g.away_runs > g.home_runs %}font-weight:700{% endif %}">{{ g.away_runs }}</span>
+            <span style="font-weight: 600;">{{ g.away_short }}</span>
+        </span>
+        <span style="color: var(--muted); font-size: 0.78rem;">
+            {{ pitcher_credits(g.wp_name, g.lp_name, g.sv_name) }}
+        </span>
+    </div>
+    {% endfor %}
+</div>
+
+{% if potw_player %}
+<h2>Jugador de la Semana</h2>
+<div class="card" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem;">
+    {{ logo_img(potw_player.logo_file, 'inline-logo') }}
+    <div>
+        <strong>{{ potw_player.name }}</strong>
+        <span style="color: var(--muted); font-size: 0.85rem;">({{ potw_player.short_name }})</span>
+        {% if potw_summary %}
+        <div style="margin-top: 0.2rem; color: var(--muted); font-size: 0.82rem;">{{ potw_summary }}</div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% if rankings %}
+<h2>Tele Rebelde Power Rankings</h2>
+<table class="standings">
+    <thead>
+        <tr>
+            <th class="num">#</th>
+            <th>Equipo</th>
+            <th>Comentario</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in rankings %}
+        <tr>
+            <td class="num" style="font-weight: 700; font-size: 1.1rem;">{{ r.rank }}</td>
+            <td style="display: flex; align-items: center; gap: 0.5rem;">
+                {% if r.team %}
+                {{ logo_img(r.team.logo_file) }}
+                <span style="color: {{ r.team.color_primary }}; font-weight: 600;">{{ r.team.name }}</span>
+                {% endif %}
+            </td>
+            <td style="color: var(--muted); font-size: 0.85rem;">{{ r.blurb }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{% if tweets %}
+<h2>Comentarios de Analistas</h2>
+<div class="card">
+    {% for t in tweets %}
+    <div class="tweet" style="display: flex; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border);">
+        {% if t.avatar_file %}
+        <img src="{{ url_for('static', filename='graphics/' + t.avatar_file) }}" class="tweet-avatar" alt="{{ t.handle }}">
+        {% endif %}
+        <div>
+            <div style="font-weight: 600; font-size: 0.85rem;">@{{ t.handle }}</div>
+            <div style="color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem;">{{ t.texto }}</div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% elif not potw_player and not rankings %}
+{{ empty_state("Contenido semanal pendiente. Ejecuta weekly.py para generar.") }}
+{% endif %}
+
+{% endblock %}

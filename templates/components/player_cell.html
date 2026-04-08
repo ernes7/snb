@@ -1,0 +1,16 @@
+{# Player thumbnail + name link cell (use inside <td> pairs) #}
+{% macro player_cell(player, show_full_name=False) %}
+<td style="width: 32px; padding-right: 0;">
+    {% if player.photo_file %}
+    <img src="{{ url_for('static', filename='graphics/' + player.photo_file) }}" class="player-thumb">
+    {% endif %}
+</td>
+<td>
+    <a href="{{ url_for('players.player', player_id=player.id) }}" class="{{ 'drafted' if player.is_drafted else '' }}">
+        {{ player.name }}
+    </a>
+    {% if show_full_name and player.full_name and player.full_name != player.name %}
+    <span style="color: var(--muted); font-size: 0.78rem;"> {{ player.full_name }}</span>
+    {% endif %}
+</td>
+{% endmacro %}

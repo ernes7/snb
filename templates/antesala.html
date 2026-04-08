@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Antesala - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+
+<div class="antesala-banner">
+    <img src="{{ url_for('static', filename='graphics/antesala-banner.png') }}" alt="Antesala">
+</div>
+
+<h1>Antesala</h1>
+<p class="section-subtitle">La mesa de analisis mas candente del beisbol cubano</p>
+
+<div class="antesala-format">
+    <span class="format-tag">8 Equipos</span>
+    <span class="format-tag">24 Juegos por equipo</span>
+    <span class="format-tag">Playoffs Mejor de 5</span>
+    <span class="format-tag">Ernesto vs Junior</span>
+</div>
+
+<!-- ANALYSTS — compact strip -->
+<div class="analysts-strip">
+{% for a in analysts %}
+<div class="analyst-chip">
+    {% if a.avatar_file %}
+    <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="chip-avatar" alt="{{ a.handle }}">
+    {% else %}
+    <span class="chip-emoji">{{ a.emoji }}</span>
+    {% endif %}
+    <div class="chip-info">
+        <strong>{{ a.handle }}</strong>
+        <span class="chip-teams">
+            <span class="chip-fav">&#10084; {{ a.fav_name }}</span>
+            <span class="chip-hate">&#128128; {{ a.hate_name }}</span>
+        </span>
+    </div>
+    {% if a.handle in preds_by_analyst %}
+    <button class="btn btn-sm btn-preds" onclick="openPreds('{{ a.handle }}')">Predicciones</button>
+    {% endif %}
+</div>
+{% endfor %}
+</div>
+
+<!-- PREDICTION MODALS -->
+{% for a in analysts %}
+{% if a.handle in preds_by_analyst %}
+<div class="modal-overlay" id="modal-{{ a.handle }}" onclick="closePreds(event, '{{ a.handle }}')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            {% if a.avatar_file %}
+            <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="chip-avatar" alt="{{ a.handle }}">
+            {% else %}
+            <span class="chip-emoji">{{ a.emoji }}</span>
+            {% endif %}
+            <div>
+                <strong class="analyst-name">{{ a.handle }}</strong>
+                <span class="analyst-age">{{ a.edad }} anos</span>
+            </div>
+            <button class="modal-close" onclick="closePreds(event, '{{ a.handle }}')">&times;</button>
+        </div>
+        <p class="analyst-bio">{{ a.descripcion }}</p>
+        <div class="modal-preds">
+        {% for p in preds_by_analyst[a.handle] %}
+            <div class="prediction">
+                <div class="pred-num">Prediccion {{ p.pred_num }}</div>
+                <div class="pred-title">{{ p.titulo }}</div>
+                <div class="pred-text">{{ p.texto }}</div>
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- TWEET FEED -->
+<h2>Cobertura en Vivo</h2>
+
+{% if tweets_by_game %}
+    {% for game_num, data in tweets_by_game|dictsort(reverse=true) %}
+    <div class="game-divider">
+        <div class="game-line"></div>
+        <div class="game-label">
+            Juego #{{ game_num }} &mdash;
+            {{ data.game.away_short }} @ {{ data.game.home_short }}
+            <strong>{{ data.game.away_runs }}-{{ data.game.home_runs }}</strong>
+        </div>
+        <div class="game-line"></div>
+    </div>
+    {% for t in data.tweets %}
+    <div class="tweet">
+        <div class="tweet-header">
+            {% if t.avatar_file %}
+            <img src="{{ url_for('static', filename='graphics/' + t.avatar_file) }}" class="tweet-avatar" alt="{{ t.handle }}">
+            {% else %}
+            <span class="tweet-emoji">{{ t.emoji }}</span>
+            {% endif %}
+            <strong>{{ t.handle }}</strong>
+            <span class="tweet-handle">@{{ t.handle }}</span>
+        </div>
+        <div class="tweet-text">{{ t.texto }}</div>
+    </div>
+    {% endfor %}
+    {% endfor %}
+{% else %}
+    <div class="empty-feed">
+        <div class="empty-icon">&#9918;</div>
+        <p>La temporada aun no ha comenzado.<br>Los tweets apareceran aqui cuando se juegue el primer partido.</p>
+    </div>
+{% endif %}
+
+<script>
+function openPreds(handle) {
+    document.getElementById('modal-' + handle).classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+function closePreds(e, handle) {
+    const modal = document.getElementById('modal-' + handle);
+    if (e.target === modal || e.currentTarget.classList.contains('modal-close')) {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(function(m) {
+            m.classList.remove('active');
+        });
+        document.body.style.overflow = '';
+    }
+});
+</script>
+
+{% endblock %}

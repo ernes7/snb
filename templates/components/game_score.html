@@ -1,0 +1,6 @@
+{# Game score display with winner coloring #}
+{% macro game_score(home_runs, away_runs, home_color, away_color) %}
+<span class="game-score" style="{% if home_runs > away_runs %}color: {{ home_color }}{% endif %}">{{ home_runs }}</span>
+<span style="color: var(--border);">—</span>
+<span class="game-score" style="{% if away_runs > home_runs %}color: {{ away_color }}{% endif %}">{{ away_runs }}</span>
+{% endmacro %}
