@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
+{% block title %}Jugadores - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+<h1>Base de Datos de Jugadores</h1>
+
+<div class="toggle-bar">
+    <button class="toggle-btn active" data-mode="bat">Bateadores</button>
+    <button class="toggle-btn" data-mode="pit">Lanzadores</button>
+</div>
+
+<div class="filters">
+    <input type="text" id="search" placeholder="Buscar jugador..." class="filter-input">
+    <select id="team-filter" class="filter-select">
+        <option value="">Todos los Equipos</option>
+        {% for t in players|map(attribute='team_short')|unique %}
+        <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+    </select>
+    <select id="owner-filter" class="filter-select">
+        <option value="">Todos los Duenos</option>
+        <option value="Ernesto">Ernesto</option>
+        <option value="Junior">Junior</option>
+    </select>
+</div>
+
+{# ── BATTERS TABLE ── #}
+<div id="bat-section">
+<table id="bat-table">
+    <thead>
+        <tr>
+            <th data-sort="text">Jugador</th>
+            <th data-sort="text">Equipo</th>
+            <th data-sort="text">Pos</th>
+            <th data-sort="text">Rol</th>
+            <th data-sort="text">B/T</th>
+            <th class="num" data-sort="num" title="Overall Rating">OVR</th>
+            <th class="num" data-sort="num" title="Poder vs Zurdo">PvL</th>
+            <th class="num" data-sort="num" title="Contacto vs Zurdo">CvL</th>
+            <th class="num" data-sort="num" title="Poder vs Derecho">PvR</th>
+            <th class="num" data-sort="num" title="Contacto vs Derecho">CvR</th>
+            <th class="num" data-sort="num" title="Velocidad">Vel</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for p in players if p.role in ('lineup', 'bench') %}
+    <tr data-team="{{ p.team_short }}" data-owner="{{ p.owner }}">
+        <td><a href="{{ url_for('players.player', player_id=p.id) }}" class="{{ 'drafted' if p.is_drafted else '' }}">{{ p.name }}</a></td>
+        <td>{{ logo_img(p.logo_file, 'player-thumb', p.team_short) }} {{ p.team_short }}</td>
+        <td>{{ p.position }}</td>
+        <td>{% if p.role == 'lineup' %}Lineup{% else %}Banca{% endif %}</td>
+        <td>{{ p.bats_throws or '' }}</td>
+        <td class="num {{ 'attr-high' if p.overall and p.overall >= 85 else 'attr-mid' if p.overall and p.overall >= 70 else '' }}"><strong>{{ p.overall if p.overall is not none else '' }}</strong></td>
+        <td class="num {{ 'attr-high' if p.power_vs_l and p.power_vs_l >= 85 else 'attr-mid' if p.power_vs_l and p.power_vs_l >= 70 else '' }}">{{ p.power_vs_l if p.power_vs_l is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.contact_vs_l and p.contact_vs_l >= 85 else 'attr-mid' if p.contact_vs_l and p.contact_vs_l >= 70 else '' }}">{{ p.contact_vs_l if p.contact_vs_l is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.power_vs_r and p.power_vs_r >= 85 else 'attr-mid' if p.power_vs_r and p.power_vs_r >= 70 else '' }}">{{ p.power_vs_r if p.power_vs_r is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.contact_vs_r and p.contact_vs_r >= 85 else 'attr-mid' if p.contact_vs_r and p.contact_vs_r >= 70 else '' }}">{{ p.contact_vs_r if p.contact_vs_r is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.speed and p.speed >= 85 else 'attr-mid' if p.speed and p.speed >= 70 else '' }}">{{ p.speed if p.speed is not none else '' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{# ── PITCHERS TABLE ── #}
+<div id="pit-section" style="display:none">
+<table id="pit-table">
+    <thead>
+        <tr>
+            <th data-sort="text">Jugador</th>
+            <th data-sort="text">Equipo</th>
+            <th data-sort="text">Rol</th>
+            <th data-sort="text">T</th>
+            <th class="num" data-sort="num" title="Overall Rating">OVR</th>
+            <th class="num" data-sort="num" title="Estamina">Stm</th>
+            <th class="num" data-sort="num" title="Recta (Fastball)">R4C</th>
+            <th class="num" data-sort="num" title="Slider">SLD</th>
+            <th class="num" data-sort="num" title="Curva">CRV</th>
+            <th class="num" data-sort="num" title="Sinker">SNK</th>
+            <th class="num" data-sort="num" title="Cambio">TND</th>
+            <th class="num" data-sort="num" title="Splitter">SPL</th>
+            <th class="num" data-sort="num" title="Screwball">SCR</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for p in players if p.role in ('rotation', 'bullpen') %}
+    <tr data-team="{{ p.team_short }}" data-owner="{{ p.owner }}">
+        <td><a href="{{ url_for('players.player', player_id=p.id) }}" class="{{ 'drafted' if p.is_drafted else '' }}">{{ p.name }}</a></td>
+        <td>{{ logo_img(p.logo_file, 'player-thumb', p.team_short) }} {{ p.team_short }}</td>
+        <td>{% if p.role == 'rotation' %}Rotacion{% else %}{{ p.bullpen_role or 'BP' }}{% endif %}</td>
+        <td>{{ p.bats_throws or '' }}</td>
+        <td class="num {{ 'attr-high' if p.overall and p.overall >= 85 else 'attr-mid' if p.overall and p.overall >= 70 else '' }}"><strong>{{ p.overall if p.overall is not none else '' }}</strong></td>
+        <td class="num {{ 'attr-high' if p.stamina and p.stamina >= 85 else 'attr-mid' if p.stamina and p.stamina >= 70 else '' }}">{{ p.stamina if p.stamina is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.fastball and p.fastball >= 85 else 'attr-mid' if p.fastball and p.fastball >= 70 else '' }}">{{ p.fastball if p.fastball is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.slider and p.slider >= 85 else 'attr-mid' if p.slider and p.slider >= 70 else '' }}">{{ p.slider if p.slider is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.curveball and p.curveball >= 85 else 'attr-mid' if p.curveball and p.curveball >= 70 else '' }}">{{ p.curveball if p.curveball is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.sinker and p.sinker >= 85 else 'attr-mid' if p.sinker and p.sinker >= 70 else '' }}">{{ p.sinker if p.sinker is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.changeup and p.changeup >= 85 else 'attr-mid' if p.changeup and p.changeup >= 70 else '' }}">{{ p.changeup if p.changeup is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.splitter and p.splitter >= 85 else 'attr-mid' if p.splitter and p.splitter >= 70 else '' }}">{{ p.splitter if p.splitter is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.screwball and p.screwball >= 85 else 'attr-mid' if p.screwball and p.screwball >= 70 else '' }}">{{ p.screwball if p.screwball is not none else '' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+<p class="muted" id="player-count"></p>
+
+<script>
+(function() {
+    const batSection = document.getElementById('bat-section');
+    const pitSection = document.getElementById('pit-section');
+    const buttons = document.querySelectorAll('.toggle-btn');
+    const search = document.getElementById('search');
+    const teamF = document.getElementById('team-filter');
+    const ownerF = document.getElementById('owner-filter');
+    const countEl = document.getElementById('player-count');
+
+    let mode = 'bat';
+
+    function activeTable() {
+        return document.getElementById(mode + '-table');
+    }
+    function activeRows() {
+        return Array.from(activeTable().querySelectorAll('tbody tr'));
+    }
+
+    // Toggle
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            mode = btn.dataset.mode;
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            batSection.style.display = mode === 'bat' ? '' : 'none';
+            pitSection.style.display = mode === 'pit' ? '' : 'none';
+            applyFilters();
+        });
+    });
+
+    // Filtering
+    function applyFilters() {
+        const q = search.value.toLowerCase();
+        const team = teamF.value;
+        const owner = ownerF.value;
+        let visible = 0;
+        activeRows().forEach(r => {
+            const name = r.cells[0].textContent.toLowerCase();
+            const show = (!q || name.includes(q))
+                && (!team || r.dataset.team === team)
+                && (!owner || r.dataset.owner === owner);
+            r.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        countEl.textContent = visible + ' jugadores';
+    }
+    search.addEventListener('input', applyFilters);
+    teamF.addEventListener('change', applyFilters);
+    ownerF.addEventListener('change', applyFilters);
+
+    // Sorting
+    let sortState = {};
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+            const table = th.closest('table');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const idx = Array.from(th.parentNode.children).indexOf(th);
+            const key = table.id + '-' + idx;
+            const asc = sortState[key] = !sortState[key];
+            table.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+            th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+            const type = th.dataset.sort;
+            rows.sort((a, b) => {
+                let va = a.cells[idx].textContent.trim();
+                let vb = b.cells[idx].textContent.trim();
+                if (type === 'num') {
+                    va = va === '' ? -999 : parseFloat(va);
+                    vb = vb === '' ? -999 : parseFloat(vb);
+                    return asc ? va - vb : vb - va;
+                }
+                return asc ? va.localeCompare(vb) : vb.localeCompare(va);
+            });
+            rows.forEach(r => tbody.appendChild(r));
+        });
+    });
+
+    applyFilters();
+})();
+</script>
+{% endblock %}

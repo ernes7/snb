@@ -13,6 +13,7 @@
             <a href="{{ url_for('main.index') }}" {% if request.endpoint == 'main.index' %}class="active"{% endif %}>Clasificacion</a>
             <a href="{{ url_for('schedule.schedule') }}" {% if request.endpoint == 'schedule.schedule' %}class="active"{% endif %}>Calendario</a>
             <a href="{{ url_for('leaders.leaders') }}" {% if request.endpoint == 'leaders.leaders' %}class="active"{% endif %}>Lideres</a>
+            <a href="{{ url_for('players.all_players') }}" {% if request.endpoint == 'players.all_players' %}class="active"{% endif %}>Jugadores</a>
             <a href="{{ url_for('draft.draft') }}" {% if request.endpoint == 'draft.draft' %}class="active"{% endif %}>Draft</a>
             <a href="{{ url_for('playoffs.playoffs') }}" {% if request.endpoint == 'playoffs.playoffs' %}class="active"{% endif %}>Playoffs</a>
             <a href="{{ url_for('antesala.antesala') }}" {% if request.endpoint == 'antesala.antesala' %}class="active"{% endif %}>Antesala</a>

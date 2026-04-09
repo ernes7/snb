@@ -129,11 +129,12 @@ def insert_game(
             db.execute("""
                 INSERT INTO pitching_stats
                     (game_id, player_id, team_id, IP_outs, H, R, ER, BB, SO,
-                     HR_allowed, W, L, SV)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     HR_allowed, W, L, SV, pitches)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (game_id, pid, tid, ip_outs, p["H"], p["R"], p["ER"],
                   p.get("BB", 0), p.get("SO", 0), p.get("HR", 0),
-                  p.get("W", 0), p.get("L", 0), p.get("SV", 0)))
+                  p.get("W", 0), p.get("L", 0), p.get("SV", 0),
+                  p.get("pitches", 0)))
 
         db.commit()
     except Exception:

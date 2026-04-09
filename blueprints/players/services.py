@@ -76,6 +76,37 @@ def get_pitching_log(player_id: int) -> list[sqlite3.Row]:
     """, (player_id,)).fetchall()
 
 
+def get_all_players_with_attrs() -> list[sqlite3.Row]:
+    """Get all players with team info and attributes for the database page."""
+    return get_db().execute("""
+        SELECT p.id, p.name, p.full_name, p.position, p.bats_throws,
+            p.role, p.lineup_order, p.bullpen_role, p.is_drafted, p.photo_file,
+            t.short_name as team_short, t.name as team_name,
+            t.color_primary, t.logo_file, t.owner,
+            pa.power_vs_l, pa.contact_vs_l, pa.power_vs_r, pa.contact_vs_r,
+            pa.speed, pa.stamina, pa.fastball, pa.slider, pa.curveball,
+            pa.sinker, pa.changeup, pa.splitter, pa.screwball,
+            CASE
+                WHEN pa.power_vs_l IS NOT NULL THEN
+                    ROUND((pa.power_vs_l + pa.contact_vs_l + pa.power_vs_r + pa.contact_vs_r + pa.speed) / 5.0, 1)
+                WHEN pa.stamina IS NOT NULL THEN
+                    ROUND((pa.stamina + COALESCE(pa.fastball,0) + COALESCE(pa.slider,0)
+                        + COALESCE(pa.curveball,0) + COALESCE(pa.sinker,0)
+                        + COALESCE(pa.changeup,0) + COALESCE(pa.splitter,0)
+                        + COALESCE(pa.screwball,0)) * 1.0
+                    / (1 + (pa.fastball IS NOT NULL) + (pa.slider IS NOT NULL)
+                        + (pa.curveball IS NOT NULL) + (pa.sinker IS NOT NULL)
+                        + (pa.changeup IS NOT NULL) + (pa.splitter IS NOT NULL)
+                        + (pa.screwball IS NOT NULL)), 1)
+                ELSE NULL
+            END as overall
+        FROM players p
+        JOIN teams t ON p.team_id = t.id
+        LEFT JOIN player_attributes pa ON pa.player_id = p.id
+        ORDER BY overall DESC NULLS LAST, t.id, p.role, p.lineup_order
+    """).fetchall()
+
+
 def get_pitching_totals(player_id: int) -> sqlite3.Row | None:
     """Get accumulated pitching totals."""
     return get_db().execute("""

@@ -5,7 +5,14 @@ from flask import abort, render_template
 
 from . import players_bp
 from .services import get_player, get_player_attrs, get_player_draft, \
-    get_batting_log, get_batting_totals, get_pitching_log, get_pitching_totals
+    get_batting_log, get_batting_totals, get_pitching_log, get_pitching_totals, \
+    get_all_players_with_attrs
+
+
+@players_bp.route('/jugadores')
+def all_players() -> str:
+    players = get_all_players_with_attrs()
+    return render_template('all_players.html', players=players)
 
 
 @players_bp.route('/player/<int:player_id>')

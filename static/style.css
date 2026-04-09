@@ -448,6 +448,36 @@ form input:focus, form select:focus { outline: none; border-color: var(--accent)
 .badge-l { background: var(--red); color: #fff; }
 .badge-sv { background: var(--gold); color: #fff; }
 
+/* Player database toggle & filters */
+.toggle-bar { display: flex; gap: 0; margin-bottom: 1rem; }
+.toggle-btn {
+    padding: 0.5rem 1.2rem; border: 1px solid var(--border); background: var(--card);
+    color: var(--muted); font-size: 0.85rem; font-weight: 600; cursor: pointer;
+}
+.toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+.toggle-btn:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+.toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.filter-input, .filter-select {
+    padding: 0.45rem 0.7rem; border: 1px solid var(--border); border-radius: 5px;
+    font-size: 0.85rem; background: var(--card); color: var(--text);
+}
+.filter-input { flex: 1; min-width: 180px; }
+.filter-select { min-width: 140px; }
+.table-scroll { overflow-x: auto; }
+
+/* Attribute coloring */
+.attr-high { color: var(--green); font-weight: 700; }
+.attr-mid { color: var(--gold); }
+
+/* Sortable headers */
+th[data-sort] { user-select: none; }
+th[data-sort]:hover { color: #fff; }
+th.sort-asc::after { content: ' \25B2'; font-size: 0.6rem; }
+th.sort-desc::after { content: ' \25BC'; font-size: 0.6rem; }
+
+.muted { color: var(--muted); font-size: 0.85rem; }
+
 /* Responsive */
 @media (max-width: 768px) {
     nav { flex-direction: column; gap: 0.5rem; height: auto; padding: 0.8rem; }
