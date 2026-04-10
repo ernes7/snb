@@ -130,7 +130,24 @@ CREATE TABLE analyst_tweets (
     game_id INTEGER REFERENCES games(id) ON DELETE CASCADE,
     texto TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    week_num INTEGER
+    week_num INTEGER,
+    likes INTEGER DEFAULT 0
+);
+
+CREATE TABLE tweet_commenters (
+    id INTEGER PRIMARY KEY,
+    handle TEXT NOT NULL UNIQUE,
+    personalidad TEXT,
+    emoji TEXT,
+    avatar_file TEXT
+);
+
+CREATE TABLE tweet_replies (
+    id INTEGER PRIMARY KEY,
+    tweet_id INTEGER REFERENCES analyst_tweets(id) ON DELETE CASCADE,
+    commenter_id INTEGER REFERENCES tweet_commenters(id),
+    texto TEXT NOT NULL,
+    likes INTEGER DEFAULT 0
 );
 
 CREATE TABLE weekly_awards (

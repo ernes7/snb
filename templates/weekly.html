@@ -90,7 +90,7 @@
 <div class="panel">
     <h2>Comentarios de Analistas</h2>
     {% for t in tweets %}
-    {{ tweet_item(t.handle, t.texto, t.avatar_file) }}
+    {{ tweet_item(t) }}
     {% endfor %}
 </div>
 {% endif %}

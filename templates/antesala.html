@@ -84,7 +84,7 @@
         <div class="game-line"></div>
     </div>
     {% for t in data.tweets %}
-    {{ tweet_item(t.handle, t.texto, t.avatar_file, t.emoji) }}
+    {{ tweet_item(t) }}
     {% endfor %}
     {% endfor %}
 {% else %}

@@ -1,15 +1,47 @@
-{# Analyst tweet/comment display #}
-{% macro tweet_item(handle, texto, avatar_file=None, emoji=None) %}
+{# Tweet card with likes, replies count, and expandable replies #}
+{% macro tweet_item(tweet) %}
 <div class="tweet">
-    <div class="tweet-header">
-        {% if avatar_file %}
-        <img src="{{ url_for('static', filename='graphics/' + avatar_file) }}" class="tweet-avatar" alt="{{ handle }}">
-        {% elif emoji %}
-        <span class="tweet-emoji">{{ emoji }}</span>
-        {% endif %}
-        <strong>{{ handle }}</strong>
-        <span class="tweet-handle">@{{ handle }}</span>
+    <div class="tweet-main">
+        <div class="tweet-header">
+            {% if tweet.avatar_file %}
+            <img src="{{ url_for('static', filename='graphics/' + tweet.avatar_file) }}" class="tweet-avatar" alt="{{ tweet.handle }}">
+            {% elif tweet.emoji %}
+            <span class="tweet-emoji">{{ tweet.emoji }}</span>
+            {% endif %}
+            <div class="tweet-author">
+                <strong>{{ tweet.handle }}</strong>
+                <span class="tweet-handle">@{{ tweet.handle }}</span>
+            </div>
+        </div>
+        <div class="tweet-text">{{ tweet.texto }}</div>
+        <div class="tweet-actions">
+            <span class="tweet-action">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                {{ tweet.replies|length if tweet.replies is defined else 0 }}
+            </span>
+            <span class="tweet-action tweet-likes">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                {{ tweet.likes or 0 }}
+            </span>
+        </div>
     </div>
-    <div class="tweet-text">{{ texto }}</div>
+    {% if tweet.replies is defined and tweet.replies %}
+    <div class="tweet-replies">
+        {% for r in tweet.replies %}
+        <div class="tweet-reply">
+            <div class="reply-header">
+                {% if r.emoji %}<span class="reply-emoji">{{ r.emoji }}</span>{% endif %}
+                <strong>{{ r.handle }}</strong>
+                <span class="tweet-handle">@{{ r.handle }}</span>
+            </div>
+            <div class="reply-text">{{ r.texto }}</div>
+            <span class="tweet-action tweet-likes reply-likes">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                {{ r.likes or 0 }}
+            </span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 </div>
 {% endmacro %}

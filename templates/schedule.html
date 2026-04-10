@@ -7,7 +7,7 @@
 <p class="text-muted mb-4">{{ played }}/96 juegos completados</p>
 
 {% for week_num, week_games in weeks %}
-<div class="schedule-week">
+<div class="schedule-week {% if week_num == current_week %}current-week{% endif %}">
     <div class="week-header">
         <span class="sched-num">Semana {{ week_num }}</span>
         <div class="week-legend sched-matchup">
@@ -20,7 +20,7 @@
     <div class="schedule-list">
     {% for g in week_games %}
         {% set game_picks = picks.get(g.id, []) %}
-        <div class="sched-row {% if g.home_runs is not none %}played{% endif %} {% if g.home_runs is not none and g.home_runs > g.away_runs %}home-win{% elif g.home_runs is not none and g.away_runs > g.home_runs %}away-win{% endif %} {% if g.id in games_of_week %}game-of-week{% endif %}">
+        <div class="sched-row {% if g.home_runs is not none %}played{% endif %} {% if g.home_runs is not none and g.home_runs > g.away_runs %}home-win{% elif g.home_runs is not none and g.away_runs > g.home_runs %}away-win{% endif %} {% if g.id in games_of_week %}game-of-week{% endif %}" {% if g.game_id %}data-href="{{ url_for('games.game_detail', game_id=g.game_id) }}"{% endif %}>
             {% if g.id in games_of_week %}
             <span class="gotw-badge">Juego de la Semana</span>
             {% endif %}
@@ -56,22 +56,25 @@
                     {% endfor %}
                 </div>
             </div>
+            {% if g.home_runs is not none %}
             <div class="sched-details">
-                {% if g.home_runs is not none %}
-                    <span class="sched-pitchers">
-                        {{ pitcher_credits(g.wp_name, g.lp_name) }}
-                    </span>
-                {% endif %}
+                <span class="sched-pitchers">
+                    {{ pitcher_credits(g.wp_name, g.lp_name) }}
+                </span>
             </div>
+            {% endif %}
         </div>
             {% if g.home_runs is none %}
             {% set home_starter = starters.get('%d_%d'|format(g.id, g.home_team_id)) %}
             {% set away_starter = starters.get('%d_%d'|format(g.id, g.away_team_id)) %}
             {% if home_starter or away_starter %}
             <div class="sched-starters">
-                <span class="starter-label team-color" style="--team-color: {{ g.home_color }}">{{ home_starter or '?' }}</span>
-                <span class="starter-vs">vs</span>
-                <span class="starter-label team-color" style="--team-color: {{ g.away_color }}">{{ away_starter or '?' }}</span>
+                <div class="sched-num"></div>
+                <div class="sched-matchup">
+                    <span class="sched-team home starter-label team-color" style="--team-color: {{ g.home_color }}">{{ home_starter or '?' }}</span>
+                    <span class="sched-vs starter-vs">vs</span>
+                    <span class="sched-team away starter-label team-color" style="--team-color: {{ g.away_color }}">{{ away_starter or '?' }}</span>
+                </div>
             </div>
             {% endif %}
             {% set home_unav = unavailable.get('%d_%d'|format(g.id, g.home_team_id), []) %}
@@ -101,4 +104,15 @@
     </div>
 </div>
 {% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.sched-row[data-href]').forEach(function(row) {
+    row.addEventListener('click', function(e) {
+        if (e.target.closest('a')) return;
+        window.location.href = row.dataset.href;
+    });
+});
+</script>
 {% endblock %}

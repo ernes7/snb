@@ -4,14 +4,6 @@
 {% block title %}Clasificacion - Serie Nacional{% endblock %}
 {% block content %}
 
-{% if recent %}
-<div class="games-strip">
-    {% for g in recent %}
-    {{ game_card(g) }}
-    {% endfor %}
-</div>
-{% endif %}
-
 <div class="panel mb-2">
     <h2>Clasificacion</h2>
     <table id="standings-table" class="standings stat-table">
@@ -44,6 +36,15 @@
         </tbody>
     </table>
 </div>
+
+{% if recent %}
+<h2>Juegos Recientes</h2>
+<div class="games-grid">
+    {% for g in recent %}
+    {{ game_card(g) }}
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

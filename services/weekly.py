@@ -142,7 +142,8 @@ def save_weekly_tweets(
     """Save analyst tweets for a week. Clears existing weekly tweets first."""
     db = get_db()
     db.execute(
-        "DELETE FROM analyst_tweets WHERE week_num = ?", (week_num,)
+        "DELETE FROM analyst_tweets WHERE week_num = ? AND game_id IS NULL",
+        (week_num,)
     )
     for t in tweets:
         db.execute("""
@@ -186,7 +187,7 @@ def get_weekly_data(week_num: int) -> dict[str, Any] | None:
         SELECT at.*, a.handle, a.emoji, a.avatar_file
         FROM analyst_tweets at
         JOIN analysts a ON at.analyst_id = a.id
-        WHERE at.week_num = ?
+        WHERE at.week_num = ? AND at.game_id IS NULL
         ORDER BY at.id
     """, (week_num,)).fetchall()
 
@@ -433,3 +434,72 @@ def pick_game_of_week(week_num: int) -> int | None:
             best_score = score
             best_id = g["schedule_id"]
     return best_id
+
+
+def save_game_tweets(
+    game_id: int,
+    tweets: list[dict[str, Any]],
+) -> None:
+    """Save analyst tweets + fan replies for a game. Likes are auto-randomized.
+
+    Args:
+        game_id: The game ID from the games table.
+        tweets: List of dicts, each with:
+            - analyst_id: int
+            - texto: str (the tweet text, include hashtag)
+            - replies: list of {commenter_id: int, texto: str}
+    """
+    import random
+    db = get_db()
+
+    week = db.execute("""
+        SELECT s.week_num FROM games g
+        JOIN schedule s ON g.schedule_id = s.id
+        WHERE g.id = ?
+    """, (game_id,)).fetchone()
+    week_num = week["week_num"] if week else None
+
+    for t in tweets:
+        likes = random.randint(15, 120)
+        cursor = db.execute("""
+            INSERT INTO analyst_tweets (analyst_id, game_id, texto, week_num, likes)
+            VALUES (?, ?, ?, ?, ?)
+        """, (t["analyst_id"], game_id, t["texto"], week_num, likes))
+        tweet_id = cursor.lastrowid
+
+        for r in t.get("replies", []):
+            reply_likes = random.randint(2, 45)
+            db.execute("""
+                INSERT INTO tweet_replies (tweet_id, commenter_id, texto, likes)
+                VALUES (?, ?, ?, ?)
+            """, (tweet_id, r["commenter_id"], r["texto"], reply_likes))
+
+    db.commit()
+
+
+def get_prediction_records() -> list[dict[str, Any]]:
+    """Get each analyst's prediction accuracy across all played games.
+
+    Returns list sorted by correct count descending:
+        [{analyst_id, handle, avatar_file, emoji, correct, total, pct}]
+    """
+    db = get_db()
+    rows = db.execute("""
+        SELECT a.id as analyst_id, a.handle, a.avatar_file, a.emoji,
+            COUNT(p.id) as total,
+            SUM(CASE
+                WHEN (s.home_team_id = p.picked_team_id AND g.home_runs > g.away_runs)
+                  OR (s.away_team_id = p.picked_team_id AND g.away_runs > g.home_runs)
+                THEN 1 ELSE 0
+            END) as correct
+        FROM analyst_game_picks p
+        JOIN analysts a ON p.analyst_id = a.id
+        JOIN schedule s ON p.schedule_id = s.id
+        JOIN games g ON g.schedule_id = s.id
+        GROUP BY a.id
+        ORDER BY correct DESC, total ASC
+    """).fetchall()
+    return [{
+        **dict(r),
+        "pct": round(r["correct"] / r["total"] * 100, 1) if r["total"] else 0,
+    } for r in rows]
