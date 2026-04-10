@@ -13,7 +13,9 @@ from services.weekly import get_weekly_data
 def weekly(week_num: int | None = None) -> str:
     db = get_db()
     max_week = db.execute(
-        "SELECT MAX(week_num) FROM weekly_awards"
+        "SELECT MAX(s.week_num) FROM schedule s "
+        "JOIN games g ON g.schedule_id = s.id "
+        "WHERE s.phase = 'regular'"
     ).fetchone()[0] or 1
     if week_num is None:
         week_num = max_week

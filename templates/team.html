@@ -1,17 +1,16 @@
 {% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
 {% from 'components/stat_box.html' import stat_box %}
 {% from 'components/player_cell.html' import player_cell %}
 {% from 'components/section_label.html' import section_label %}
-{% block title %}{{ team.name }} - Torneo MVP Cuba 2011{% endblock %}
+{% block title %}{{ team.name }} - Serie Nacional{% endblock %}
 {% block content %}
 <div class="team-header">
-    {% if team.logo_file %}
-    <img src="{{ url_for('static', filename='graphics/' + team.logo_file) }}" class="team-logo">
-    {% endif %}
+    {{ logo_img(team.logo_file, css_class='team-logo', alt=team.name) }}
     <div>
-        <h1 style="margin-bottom: 0; color: {{ team.color_primary }}">{{ team.full_name }}</h1>
+        <h1 class="mb-0 team-color" style="--team-color: {{ team.color_primary }}">{{ team.full_name }}</h1>
         <div class="team-meta">
-            <span class="team-rank" style="background: {{ team.color_primary }}">OVR #{{ team.rank_overall }}</span>
+            <span class="team-rank team-bg" style="--team-color: {{ team.color_primary }}">OVR #{{ team.rank_overall }}</span>
             <span class="owner-{{ team.owner|lower }}">{{ team.owner }}</span>
             <span>Pitcheo: {{ team.rank_pitching }}</span>
             <span>Bateo: {{ team.rank_batting }}</span>
@@ -22,7 +21,7 @@
 </div>
 
 {% if stats %}
-<div class="card" style="border-left: 4px solid {{ team.color_primary }}">
+<div class="card team-border" style="--team-color: {{ team.color_primary }}">
     {{ stat_box(stats.wins, 'Ganados') }}
     {{ stat_box(stats.losses, 'Perdidos') }}
     {{ stat_box(stats.pct, 'PCT') }}
@@ -32,148 +31,142 @@
 </div>
 {% endif %}
 
+<div class="bento">
 {% if bat_totals %}
-<h2>Bateo del Equipo</h2>
-<table>
-    <thead><tr><th class="num">AB</th><th class="num">R</th><th class="num">H</th><th class="num">2B</th><th class="num">3B</th><th class="num">HR</th><th class="num">RBI</th><th class="num">BB</th><th class="num">SO</th><th class="num">SB</th><th class="num">AVG</th></tr></thead>
-    <tbody>
-    <tr>
-        <td class="num">{{ bat_totals.AB }}</td>
-        <td class="num">{{ bat_totals.R }}</td>
-        <td class="num">{{ bat_totals.H }}</td>
-        <td class="num">{{ bat_totals.doubles }}</td>
-        <td class="num">{{ bat_totals.triples }}</td>
-        <td class="num">{{ bat_totals.HR }}</td>
-        <td class="num">{{ bat_totals.RBI }}</td>
-        <td class="num">{{ bat_totals.BB }}</td>
-        <td class="num">{{ bat_totals.SO }}</td>
-        <td class="num">{{ bat_totals.SB }}</td>
-        <td class="num pct">{{ "%.3f"|format(bat_totals.AVG) }}</td>
-    </tr>
-    </tbody>
-</table>
+<div class="panel">
+    <h2>Bateo</h2>
+    <table class="stat-table">
+        <caption class="sr-only">Estadisticas de bateo del equipo</caption>
+        <thead><tr><th class="num" scope="col">AB</th><th class="num" scope="col">R</th><th class="num" scope="col">H</th><th class="num" scope="col">2B</th><th class="num" scope="col">3B</th><th class="num" scope="col">HR</th><th class="num" scope="col">RBI</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th><th class="num" scope="col">SB</th><th class="num" scope="col">AVG</th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="num">{{ bat_totals.AB }}</td><td class="num">{{ bat_totals.R }}</td><td class="num">{{ bat_totals.H }}</td>
+            <td class="num">{{ bat_totals.doubles }}</td><td class="num">{{ bat_totals.triples }}</td><td class="num">{{ bat_totals.HR }}</td>
+            <td class="num">{{ bat_totals.RBI }}</td><td class="num">{{ bat_totals.BB }}</td><td class="num">{{ bat_totals.SO }}</td>
+            <td class="num">{{ bat_totals.SB }}</td><td class="num pct">{{ "%.3f"|format(bat_totals.AVG) }}</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
 {% endif %}
-
 {% if pitch_totals %}
-<h2>Pitcheo del Equipo</h2>
-<table>
-    <thead><tr><th class="num">IP</th><th class="num">H</th><th class="num">R</th><th class="num">ER</th><th class="num">BB</th><th class="num">SO</th><th class="num">HR</th><th class="num">ERA</th></tr></thead>
-    <tbody>
-    <tr>
-        <td class="num">{{ format_ip(pitch_totals.IP_outs) }}</td>
-        <td class="num">{{ pitch_totals.H }}</td>
-        <td class="num">{{ pitch_totals.R }}</td>
-        <td class="num">{{ pitch_totals.ER }}</td>
-        <td class="num">{{ pitch_totals.BB }}</td>
-        <td class="num">{{ pitch_totals.SO }}</td>
-        <td class="num">{{ pitch_totals.HR_allowed }}</td>
-        <td class="num">{{ "%.2f"|format(pitch_totals.ERA) }}</td>
-    </tr>
-    </tbody>
-</table>
-{% endif %}
-
-{% if team_errors is not none %}
-<div class="card" style="border-left: 4px solid {{ team.color_primary }}; margin-bottom: 1rem;">
-    {{ stat_box(team_errors, 'Errores') }}
+<div class="panel">
+    <h2>Pitcheo{% if team_errors is not none %} | E: {{ team_errors }}{% endif %}</h2>
+    <table class="stat-table">
+        <caption class="sr-only">Estadisticas de pitcheo del equipo</caption>
+        <thead><tr><th class="num" scope="col">IP</th><th class="num" scope="col">H</th><th class="num" scope="col">R</th><th class="num" scope="col">ER</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th><th class="num" scope="col">HR</th><th class="num" scope="col">ERA</th></tr></thead>
+        <tbody>
+        <tr>
+            <td class="num">{{ format_ip(pitch_totals.IP_outs) }}</td><td class="num">{{ pitch_totals.H }}</td><td class="num">{{ pitch_totals.R }}</td>
+            <td class="num">{{ pitch_totals.ER }}</td><td class="num">{{ pitch_totals.BB }}</td><td class="num">{{ pitch_totals.SO }}</td>
+            <td class="num">{{ pitch_totals.HR_allowed }}</td><td class="num">{{ "%.2f"|format(pitch_totals.ERA) }}</td>
+        </tr>
+        </tbody>
+    </table>
 </div>
 {% endif %}
 
-<h2>Alineacion</h2>
-<table>
-    <thead><tr><th class="num">#</th><th>Pos</th><th colspan="2">Nombre</th><th class="num">B</th><th></th></tr></thead>
-    <tbody>
-    {% for p in lineup %}
-        <tr>
-            <td class="num">{{ p.lineup_order }}</td>
-            <td>{{ p.position }}</td>
-            {{ player_cell(p, show_full_name=True) }}
-            <td class="num">{{ p.bats_throws }}</td>
-            <td>{% if p.is_drafted %}{{ section_label('DRAFT') }}{% endif %}</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
-
-<h2>Banca</h2>
-<table>
-    <thead><tr><th>Pos</th><th>Nombre</th><th class="num">B</th></tr></thead>
-    <tbody>
-    {% for p in bench %}
-        <tr>
-            <td>{{ p.position }}</td>
-            <td><a href="{{ url_for('players.player', player_id=p.id) }}">{{ p.name }}</a></td>
-            <td class="num">{{ p.bats_throws }}</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
-
-<h2>Rotacion</h2>
-<table>
-    <thead><tr><th class="num">#</th><th colspan="2">Nombre</th><th class="num">T</th><th></th></tr></thead>
-    <tbody>
-    {% for p in rotation %}
-        <tr>
-            <td class="num">{{ p.lineup_order }}</td>
-            {{ player_cell(p, show_full_name=True) }}
-            <td class="num">{{ p.bats_throws }}</td>
-            <td>{% if p.is_drafted %}{{ section_label('DRAFT') }}{% endif %}</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
-
-<h2>Bullpen</h2>
-<table>
-    <thead><tr><th>Rol</th><th>Nombre</th><th class="num">T</th></tr></thead>
-    <tbody>
-    {% for p in bullpen %}
-        <tr>
-            <td>{{ p.bullpen_role }}</td>
-            <td><a href="{{ url_for('players.player', player_id=p.id) }}">{{ p.name }}</a></td>
-            <td class="num">{{ p.bats_throws }}</td>
-        </tr>
-    {% endfor %}
-    </tbody>
-</table>
-
+<div class="panel">
+    <h2>Alineacion</h2>
+    <table class="stat-table">
+        <caption class="sr-only">Alineacion del equipo</caption>
+        <thead><tr><th class="num" scope="col">#</th><th scope="col">Pos</th><th colspan="2" scope="col">Nombre</th><th class="num" scope="col">B</th><th scope="col"></th></tr></thead>
+        <tbody>
+        {% for p in lineup %}
+            <tr>
+                <td class="num">{{ p.lineup_order }}</td>
+                <td>{{ p.position }}</td>
+                {{ player_cell(p, show_full_name=True) }}
+                <td class="num">{{ p.bats_throws }}</td>
+                <td>{% if p.is_drafted %}{{ section_label('DRAFT') }}{% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="panel">
+    <h2>Rotacion</h2>
+    <table class="stat-table">
+        <caption class="sr-only">Rotacion de pitcheo</caption>
+        <thead><tr><th class="num" scope="col">#</th><th colspan="2" scope="col">Nombre</th><th class="num" scope="col">T</th><th scope="col"></th></tr></thead>
+        <tbody>
+        {% for p in rotation %}
+            <tr>
+                <td class="num">{{ p.lineup_order }}</td>
+                {{ player_cell(p, show_full_name=True) }}
+                <td class="num">{{ p.bats_throws }}</td>
+                <td>{% if p.is_drafted %}{{ section_label('DRAFT') }}{% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <h2>Bullpen</h2>
+    <table class="stat-table">
+        <caption class="sr-only">Bullpen del equipo</caption>
+        <thead><tr><th scope="col">Rol</th><th scope="col">Nombre</th><th class="num" scope="col">T</th></tr></thead>
+        <tbody>
+        {% for p in bullpen %}
+            <tr>
+                <td>{{ p.bullpen_role }}</td>
+                <td><a href="{{ url_for('players.player', player_id=p.id) }}">{{ p.name }}</a></td>
+                <td class="num">{{ p.bats_throws }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+<div class="panel">
+    <h2>Banca</h2>
+    <table class="stat-table">
+        <caption class="sr-only">Banca del equipo</caption>
+        <thead><tr><th scope="col">Pos</th><th scope="col">Nombre</th><th class="num" scope="col">B</th></tr></thead>
+        <tbody>
+        {% for p in bench %}
+            <tr>
+                <td>{{ p.position }}</td>
+                <td><a href="{{ url_for('players.player', player_id=p.id) }}">{{ p.name }}</a></td>
+                <td class="num">{{ p.bats_throws }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% if bat_leaders %}
-<h2>Lideres de Bateo</h2>
-<table>
-    <thead><tr><th>Nombre</th><th>Pos</th><th class="num">AB</th><th class="num">H</th><th class="num">HR</th><th class="num">RBI</th><th class="num">AVG</th></tr></thead>
-    <tbody>
-    {% for b in bat_leaders %}
-    <tr>
-        <td><a href="{{ url_for('players.player', player_id=b.id) }}">{{ b.name }}</a></td>
-        <td>{{ b.position }}</td>
-        <td class="num">{{ b.AB }}</td>
-        <td class="num">{{ b.H }}</td>
-        <td class="num">{{ b.HR }}</td>
-        <td class="num">{{ b.RBI }}</td>
-        <td class="num pct">{{ "%.3f"|format(b.AVG) }}</td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+<div class="panel">
+    <h2>Lideres Bateo</h2>
+    <table class="stat-table leaderboard">
+        <caption class="sr-only">Lideres de bateo del equipo</caption>
+        <thead><tr><th scope="col">Nombre</th><th scope="col">Pos</th><th class="num" scope="col">AB</th><th class="num" scope="col">H</th><th class="num" scope="col">HR</th><th class="num" scope="col">RBI</th><th class="num" scope="col">AVG</th></tr></thead>
+        <tbody>
+        {% for b in bat_leaders %}
+        <tr>
+            <td><a href="{{ url_for('players.player', player_id=b.id) }}">{{ b.name }}</a></td>
+            <td>{{ b.position }}</td>
+            <td class="num">{{ b.AB }}</td><td class="num">{{ b.H }}</td><td class="num">{{ b.HR }}</td>
+            <td class="num">{{ b.RBI }}</td><td class="num pct">{{ "%.3f"|format(b.AVG) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endif %}
-
 {% if pitch_leaders %}
-<h2>Lideres de Pitcheo</h2>
-<table>
-    <thead><tr><th>Nombre</th><th class="num">IP</th><th class="num">G</th><th class="num">P</th><th class="num">SO</th><th class="num">ERA</th></tr></thead>
-    <tbody>
-    {% for pl in pitch_leaders %}
-    <tr>
-        <td><a href="{{ url_for('players.player', player_id=pl.id) }}">{{ pl.name }}</a></td>
-        <td class="num">{{ format_ip(pl.IP_outs) }}</td>
-        <td class="num">{{ pl.W }}</td>
-        <td class="num">{{ pl.L }}</td>
-        <td class="num">{{ pl.SO }}</td>
-        <td class="num">{{ "%.2f"|format(pl.ERA) }}</td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+<div class="panel">
+    <h2>Lideres Pitcheo</h2>
+    <table class="stat-table leaderboard">
+        <caption class="sr-only">Lideres de pitcheo del equipo</caption>
+        <thead><tr><th scope="col">Nombre</th><th class="num" scope="col">IP</th><th class="num" scope="col">G</th><th class="num" scope="col">P</th><th class="num" scope="col">SO</th><th class="num" scope="col">ERA</th></tr></thead>
+        <tbody>
+        {% for pl in pitch_leaders %}
+        <tr>
+            <td><a href="{{ url_for('players.player', player_id=pl.id) }}">{{ pl.name }}</a></td>
+            <td class="num">{{ format_ip(pl.IP_outs) }}</td><td class="num">{{ pl.W }}</td><td class="num">{{ pl.L }}</td>
+            <td class="num">{{ pl.SO }}</td><td class="num">{{ "%.2f"|format(pl.ERA) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endif %}
+</div>
 {% endblock %}

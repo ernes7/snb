@@ -1,11 +1,12 @@
 {% extends "base.html" %}
 {% from 'components/logo_img.html' import logo_img %}
+{% from 'components/team_link.html' import team_link %}
 {% from 'components/series_table.html' import series_table %}
-{% block title %}Playoffs - Torneo MVP Cuba 2011{% endblock %}
+{% block title %}Playoffs - Serie Nacional{% endblock %}
 {% block content %}
 <h1>Playoffs</h1>
 
-<p style="color: var(--muted); margin-bottom: 1rem;">
+<p class="text-muted mb-4">
     Top 4 clasifican. Si 2 equipos del mismo jugador se enfrentan, ese jugador elige al ganador.
     Todas las series son al mejor de 5.
 </p>
@@ -14,11 +15,10 @@
 <h2>Proyeccion Actual</h2>
 <div class="card">
     {% for s in standings[:4] %}
-    <span style="margin-right: 1.5rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+    <span class="playoff-seed">
         {{ loop.index }}.
-        {{ logo_img(s.logo_file, css_class='inline-logo-sm') }}
-        <span style="color: {{ s.color_primary }}; font-weight: 600;">{{ s.name }}</span>
-        <span style="color: var(--muted);">({{ s.wins }}-{{ s.losses }})</span>
+        {{ team_link(s.short_name, s.name, s.color_primary, s.logo_file) }}
+        <span class="text-muted">({{ s.wins }}-{{ s.losses }})</span>
     </span>
     {% endfor %}
 </div>

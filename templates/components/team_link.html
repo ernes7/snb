@@ -1,6 +1,6 @@
-{# Team name link with color styling #}
+{# Team name link with color styling — requires --team-color set by caller if needed #}
 {% from 'components/logo_img.html' import logo_img %}
 {% macro team_link(short_name, name, color, logo_file=None) %}
 {{ logo_img(logo_file) }}
-<a href="{{ url_for('teams.team', short=short_name) }}" style="color: {{ color }}; font-weight: 600;">{{ name }}</a>
+<a href="{{ url_for('teams.team', short=short_name) }}" class="team-color-bold" style="--team-color: {{ color }}">{{ name }}</a>
 {% endmacro %}

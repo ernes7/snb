@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% from 'components/logo_img.html' import logo_img %}
 {% from 'components/empty_state.html' import empty_state %}
-{% block title %}Lideres - Torneo MVP Cuba 2011{% endblock %}
+{% from 'components/leaderboard_table.html' import leaderboard_table %}
+{% block title %}Lideres - Serie Nacional{% endblock %}
 {% block content %}
 <h1>Lideres del Torneo</h1>
 
@@ -9,137 +9,45 @@
 {{ empty_state('Los lideres apareceran cuando se registren juegos con estadisticas individuales.') }}
 {% endif %}
 
-{# ── BATTING ─── #}
+<div class="bento">
 
 {% if bat_avg %}
-<h2>Promedio de Bateo (min. 5 AB)</h2>
-<table>
-    <thead><tr><th class="num">#</th><th>Jugador</th><th>Equipo</th><th class="num">AB</th><th class="num">H</th><th class="num">HR</th><th class="num">RBI</th><th class="num">AVG</th></tr></thead>
-    <tbody>
-    {% for b in bat_avg %}
-    <tr>
-        <td class="num">{{ loop.index }}</td>
-        <td><a href="{{ url_for('players.player', player_id=b.id) }}">{{ b.name }}</a></td>
-        <td>{{ logo_img(b.logo_file, alt=b.short_name) }}</td>
-        <td class="num">{{ b.AB }}</td>
-        <td class="num">{{ b.H }}</td>
-        <td class="num">{{ b.HR }}</td>
-        <td class="num">{{ b.RBI }}</td>
-        <td class="num pct"><strong>{{ "%.3f"|format(b.AVG) }}</strong></td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+{{ leaderboard_table('Promedio (min. 5 AB)', 'Lideres de promedio de bateo', bat_avg,
+    [('AB', 'AB', false), ('H', 'H', false), ('AVG', 'AVG', true)],
+    format_map={"AVG": "%.3f"}) }}
 {% endif %}
 
 {% if bat_hr %}
-<h2>Home Runs</h2>
-<table>
-    <thead><tr><th class="num">#</th><th>Jugador</th><th>Equipo</th><th class="num">HR</th></tr></thead>
-    <tbody>
-    {% for b in bat_hr %}
-    <tr>
-        <td class="num">{{ loop.index }}</td>
-        <td><a href="{{ url_for('players.player', player_id=b.id) }}">{{ b.name }}</a></td>
-        <td>{{ logo_img(b.logo_file, alt=b.short_name) }}</td>
-        <td class="num"><strong>{{ b.HR }}</strong></td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+{{ leaderboard_table('Home Runs', 'Lideres de home runs', bat_hr,
+    [('HR', 'HR', true)]) }}
 {% endif %}
 
 {% if bat_hits %}
-<h2>Hits</h2>
-<table>
-    <thead><tr><th class="num">#</th><th>Jugador</th><th>Equipo</th><th class="num">H</th></tr></thead>
-    <tbody>
-    {% for b in bat_hits %}
-    <tr>
-        <td class="num">{{ loop.index }}</td>
-        <td><a href="{{ url_for('players.player', player_id=b.id) }}">{{ b.name }}</a></td>
-        <td>{{ logo_img(b.logo_file, alt=b.short_name) }}</td>
-        <td class="num"><strong>{{ b.H }}</strong></td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+{{ leaderboard_table('Hits', 'Lideres de hits', bat_hits,
+    [('H', 'H', true)]) }}
 {% endif %}
 
 {% if bat_rbi %}
-<h2>Carreras Impulsadas</h2>
-<table>
-    <thead><tr><th class="num">#</th><th>Jugador</th><th>Equipo</th><th class="num">RBI</th></tr></thead>
-    <tbody>
-    {% for b in bat_rbi %}
-    <tr>
-        <td class="num">{{ loop.index }}</td>
-        <td><a href="{{ url_for('players.player', player_id=b.id) }}">{{ b.name }}</a></td>
-        <td>{{ logo_img(b.logo_file, alt=b.short_name) }}</td>
-        <td class="num"><strong>{{ b.RBI }}</strong></td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+{{ leaderboard_table('Carreras Impulsadas', 'Lideres de carreras impulsadas', bat_rbi,
+    [('RBI', 'RBI', true)]) }}
 {% endif %}
 
-{# ── PITCHING ─── #}
-
 {% if pitch_wins %}
-<h2>Victorias</h2>
-<table>
-    <thead><tr><th class="num">#</th><th>Jugador</th><th>Equipo</th><th class="num">G</th><th class="num">P</th><th class="num">IP</th></tr></thead>
-    <tbody>
-    {% for p in pitch_wins %}
-    <tr>
-        <td class="num">{{ loop.index }}</td>
-        <td><a href="{{ url_for('players.player', player_id=p.id) }}">{{ p.name }}</a></td>
-        <td>{{ logo_img(p.logo_file, alt=p.short_name) }}</td>
-        <td class="num"><strong>{{ p.W }}</strong></td>
-        <td class="num">{{ p.L }}</td>
-        <td class="num">{{ format_ip(p.IP_outs) }}</td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+{{ leaderboard_table('Victorias', 'Lideres de victorias', pitch_wins,
+    [('G', 'W', true), ('P', 'L', false)]) }}
 {% endif %}
 
 {% if pitch_era %}
-<h2>ERA (min. 3 IP)</h2>
-<table>
-    <thead><tr><th class="num">#</th><th>Jugador</th><th>Equipo</th><th class="num">IP</th><th class="num">G-P</th><th class="num">SO</th><th class="num">ERA</th></tr></thead>
-    <tbody>
-    {% for p in pitch_era %}
-    <tr>
-        <td class="num">{{ loop.index }}</td>
-        <td><a href="{{ url_for('players.player', player_id=p.id) }}">{{ p.name }}</a></td>
-        <td>{{ logo_img(p.logo_file, alt=p.short_name) }}</td>
-        <td class="num">{{ format_ip(p.IP_outs) }}</td>
-        <td class="num">{{ p.W }}-{{ p.L }}</td>
-        <td class="num">{{ p.SO }}</td>
-        <td class="num"><strong>{{ "%.2f"|format(p.ERA) }}</strong></td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+{{ leaderboard_table('ERA (min. 3 IP)', 'Lideres de ERA', pitch_era,
+    [('IP', 'IP_outs', false), ('SO', 'SO', false), ('ERA', 'ERA', true)],
+    format_map={"ERA": "%.2f"}) }}
 {% endif %}
 
 {% if pitch_so %}
-<h2>Ponches</h2>
-<table>
-    <thead><tr><th class="num">#</th><th>Jugador</th><th>Equipo</th><th class="num">SO</th><th class="num">IP</th></tr></thead>
-    <tbody>
-    {% for p in pitch_so %}
-    <tr>
-        <td class="num">{{ loop.index }}</td>
-        <td><a href="{{ url_for('players.player', player_id=p.id) }}">{{ p.name }}</a></td>
-        <td>{{ logo_img(p.logo_file, alt=p.short_name) }}</td>
-        <td class="num"><strong>{{ p.SO }}</strong></td>
-        <td class="num">{{ format_ip(p.IP_outs) }}</td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
+{{ leaderboard_table('Ponches', 'Lideres de ponches', pitch_so,
+    [('SO', 'SO', true), ('IP', 'IP_outs', false)],
+    panel_class='bento-full') }}
 {% endif %}
 
+</div>
 {% endblock %}

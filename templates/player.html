@@ -13,29 +13,27 @@
     </div>
     {% endif %}
     <div>
-        <div style="color: var(--muted); font-size: 0.85rem;">
+        <div class="text-muted text-sm">
             {{ player.position }} | {{ player.role|upper }}
             {% if player.is_drafted %} | <span class="drafted">DRAFTED</span>{% endif %}
         </div>
-        <h1 style="margin-bottom: 0.2rem; color: {{ player.color_primary }}">
+        <h1 class="mb-1 team-color" style="--team-color: {{ player.color_primary }}">
             {{ player.full_name or player.name }}
         </h1>
         <div>
             {{ logo_img(player.logo_file, css_class='inline-logo', alt=player.team_name) }}
-            <a href="{{ url_for('teams.team', short=player.team_short) }}" style="color: {{ player.color_primary }}; font-weight: 600;">
+            <a href="{{ url_for('teams.team', short=player.team_short) }}" class="team-color-bold" style="--team-color: {{ player.color_primary }}">
                 {{ player.team_name }}
             </a>
-            <span style="color: var(--muted);">
-                ({{ player.owner }})
-            </span>
+            <span class="text-muted">({{ player.owner }})</span>
         </div>
         {% if player.role in ('lineup', 'bench') %}
-        <div style="margin-top: 0.3rem; color: var(--muted); font-size: 0.85rem;">
+        <div class="text-muted text-sm mt-1">
             Batea: {{ player.bats_throws }}
             {% if player.lineup_order %} | Orden: #{{ player.lineup_order }}{% endif %}
         </div>
         {% else %}
-        <div style="margin-top: 0.3rem; color: var(--muted); font-size: 0.85rem;">
+        <div class="text-muted text-sm mt-1">
             Tira: {{ player.bats_throws }}
             {% if player.bullpen_role %} | Rol: {{ player.bullpen_role }}{% endif %}
         </div>
@@ -44,7 +42,7 @@
 </div>
 
 {% if draft %}
-<div class="card" style="border-left: 4px solid var(--red);">
+<div class="card border-left-accent">
     {{ section_label('Draft') }}
     Pick #{{ draft.pick_num }} (Ronda {{ draft.round }}) — Seleccionado como {{ draft.position_drafted }}
 </div>
@@ -54,20 +52,20 @@
 <h2>Atributos</h2>
 <div class="card">
     {% if attrs.power_vs_l is not none %}
-    <div style="margin-bottom: 0.8rem;">
+    <div class="attr-group">
         {{ stat_box(attrs.speed, 'Velocidad') }}
     </div>
-    <div style="display: flex; gap: 2rem;">
+    <div class="attr-splits">
         <div>
             {{ section_label('vs Zurdos') }}
-            <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem;">
+            <div class="attr-row">
                 {{ stat_box(attrs.power_vs_l, 'Poder') }}
                 {{ stat_box(attrs.contact_vs_l, 'Contacto') }}
             </div>
         </div>
         <div>
             {{ section_label('vs Derechos') }}
-            <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem;">
+            <div class="attr-row">
                 {{ stat_box(attrs.power_vs_r, 'Poder') }}
                 {{ stat_box(attrs.contact_vs_r, 'Contacto') }}
             </div>
@@ -75,15 +73,15 @@
     </div>
     {% endif %}
     {% if attrs.stamina is not none %}
-    <div style="margin-bottom: 0.8rem;">
+    <div class="attr-group">
         {{ section_label('General') }}
-        <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem;">
+        <div class="attr-row">
             {{ stat_box(attrs.stamina, 'Estamina') }}
         </div>
     </div>
     <div>
         {{ section_label('Pitcheos') }}
-        <div style="display: flex; gap: 0.5rem; margin-top: 0.4rem; flex-wrap: wrap;">
+        <div class="attr-row flex-wrap">
             {% if attrs.fastball %}{{ stat_box(attrs.fastball, 'R4C') }}{% endif %}
             {% if attrs.slider %}{{ stat_box(attrs.slider, 'SLD') }}{% endif %}
             {% if attrs.curveball %}{{ stat_box(attrs.curveball, 'CRV') }}{% endif %}
@@ -115,30 +113,27 @@
 </div>
 
 <h2>Juego por Juego (Bateo)</h2>
-<table>
+<div class="table-scroll">
+<table class="stat-table">
+    <caption class="sr-only">Estadisticas de bateo por juego</caption>
     <thead>
-        <tr><th class="num">#</th><th>vs</th><th class="num">AB</th><th class="num">R</th><th class="num">H</th>
-        <th class="num">2B</th><th class="num">3B</th><th class="num">HR</th><th class="num">RBI</th>
-        <th class="num">BB</th><th class="num">SO</th></tr>
+        <tr><th class="num" scope="col">#</th><th scope="col">vs</th><th class="num" scope="col">AB</th><th class="num" scope="col">R</th><th class="num" scope="col">H</th>
+        <th class="num" scope="col">2B</th><th class="num" scope="col">3B</th><th class="num" scope="col">HR</th><th class="num" scope="col">RBI</th>
+        <th class="num" scope="col">BB</th><th class="num" scope="col">SO</th></tr>
     </thead>
     <tbody>
     {% for bg in bat_games %}
     <tr>
         <td class="num">{{ bg.game_num }}</td>
         <td>{{ bg.home_short }} vs {{ bg.away_short }}</td>
-        <td class="num">{{ bg.AB }}</td>
-        <td class="num">{{ bg.R }}</td>
-        <td class="num">{{ bg.H }}</td>
-        <td class="num">{{ bg.doubles }}</td>
-        <td class="num">{{ bg.triples }}</td>
-        <td class="num">{{ bg.HR }}</td>
-        <td class="num">{{ bg.RBI }}</td>
-        <td class="num">{{ bg.BB }}</td>
-        <td class="num">{{ bg.SO }}</td>
+        <td class="num">{{ bg.AB }}</td><td class="num">{{ bg.R }}</td><td class="num">{{ bg.H }}</td>
+        <td class="num">{{ bg.doubles }}</td><td class="num">{{ bg.triples }}</td><td class="num">{{ bg.HR }}</td>
+        <td class="num">{{ bg.RBI }}</td><td class="num">{{ bg.BB }}</td><td class="num">{{ bg.SO }}</td>
     </tr>
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endif %}
 
 {# Pitching stats #}
@@ -156,30 +151,27 @@
 </div>
 
 <h2>Juego por Juego (Pitcheo)</h2>
-<table>
+<div class="table-scroll">
+<table class="stat-table">
+    <caption class="sr-only">Estadisticas de pitcheo por juego</caption>
     <thead>
-        <tr><th class="num">#</th><th>vs</th><th class="num">IP</th><th class="num">H</th><th class="num">R</th>
-        <th class="num">ER</th><th class="num">BB</th><th class="num">SO</th><th class="num">Lanz</th><th class="num">Dec</th></tr>
+        <tr><th class="num" scope="col">#</th><th scope="col">vs</th><th class="num" scope="col">IP</th><th class="num" scope="col">H</th><th class="num" scope="col">R</th>
+        <th class="num" scope="col">ER</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th><th class="num" scope="col">Lanz</th><th class="num" scope="col">Dec</th></tr>
     </thead>
     <tbody>
     {% for pg in pitch_games %}
     <tr>
         <td class="num">{{ pg.game_num }}</td>
         <td>{{ pg.home_short }} vs {{ pg.away_short }}</td>
-        <td class="num">{{ format_ip(pg.IP_outs) }}</td>
-        <td class="num">{{ pg.H }}</td>
-        <td class="num">{{ pg.R }}</td>
-        <td class="num">{{ pg.ER }}</td>
-        <td class="num">{{ pg.BB }}</td>
-        <td class="num">{{ pg.SO }}</td>
+        <td class="num">{{ format_ip(pg.IP_outs) }}</td><td class="num">{{ pg.H }}</td><td class="num">{{ pg.R }}</td>
+        <td class="num">{{ pg.ER }}</td><td class="num">{{ pg.BB }}</td><td class="num">{{ pg.SO }}</td>
         <td class="num">{{ pg.pitches if pg.pitches else '' }}</td>
-        <td class="num">
-            {% if pg.W %}W{% elif pg.L %}L{% elif pg.SV %}SV{% endif %}
-        </td>
+        <td class="num">{% if pg.W %}W{% elif pg.L %}L{% elif pg.SV %}SV{% endif %}</td>
     </tr>
     {% endfor %}
     </tbody>
 </table>
+</div>
 {% endif %}
 
 {% if (not bat_games) and (not pitch_games) %}

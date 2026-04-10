@@ -14,6 +14,7 @@ from services.weekly import (
     get_week_top_batters,
     get_week_top_pitchers,
     get_analysts_compact,
+    _get_rank_map,
 )
 
 
@@ -102,6 +103,30 @@ def print_weekly_summary(week_num: int) -> None:
         except UnicodeEncodeError:
             print(f"  @{a['handle']}: estilo={a['estilo']},"
                   f" fav={fav}, odia={hate}, frase=\"{a['frase']}\"")
+
+    # Upcoming games (next week) with power rankings for predictions
+    from db import get_db
+    next_week = week_num + 1
+    db = get_db()
+    upcoming = db.execute("""
+        SELECT s.game_num, s.id as schedule_id,
+            ht.short_name as home, at.short_name as away
+        FROM schedule s
+        JOIN teams ht ON s.home_team_id = ht.id
+        JOIN teams at ON s.away_team_id = at.id
+        WHERE s.phase = 'regular' AND s.week_num = ?
+        ORDER BY s.game_num
+    """, (next_week,)).fetchall()
+    if upcoming:
+        rank_map = _get_rank_map(week_num)
+        short_to_rank = {}
+        for row in db.execute("SELECT id, short_name FROM teams").fetchall():
+            short_to_rank[row["short_name"]] = rank_map.get(row["id"], "?")
+        print(f"\nPROXIMA SEMANA {next_week} (para predicciones):")
+        for g in upcoming:
+            hr = short_to_rank.get(g["home"], "?")
+            ar = short_to_rank.get(g["away"], "?")
+            print(f"  G{g['game_num']}: {g['home']}(#{hr}) vs {g['away']}(#{ar})")
 
 
 if __name__ == "__main__":

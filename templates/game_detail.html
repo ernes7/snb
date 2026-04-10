@@ -1,25 +1,26 @@
 {% extends "base.html" %}
 {% from 'components/logo_img.html' import logo_img %}
 {% from 'components/pitcher_credits.html' import pitcher_credits %}
-{% block title %}Juego #{{ game.game_num }} - Torneo MVP Cuba 2011{% endblock %}
+{% block title %}Juego #{{ game.game_num }} - Serie Nacional{% endblock %}
 {% block content %}
 
 <h1>Juego #{{ game.game_num }}</h1>
 
 {# --- Linescore --- #}
-<div class="card" style="overflow-x: auto;">
+<div class="card overflow-x">
 <table class="linescore">
+    <caption class="sr-only">Linescore del juego</caption>
     <thead>
         <tr>
-            <th></th>
+            <th scope="col"></th>
             {% if game.away_linescore %}
                 {% for _ in game.away_linescore.split(',') %}
-                <th class="num">{{ loop.index }}</th>
+                <th class="num" scope="col">{{ loop.index }}</th>
                 {% endfor %}
             {% endif %}
-            <th class="num" style="border-left: 2px solid var(--border);">C</th>
-            <th class="num">H</th>
-            <th class="num">E</th>
+            <th class="num linescore-sep" scope="col">C</th>
+            <th class="num" scope="col">H</th>
+            <th class="num" scope="col">E</th>
         </tr>
     </thead>
     <tbody>
@@ -28,17 +29,17 @@
             ('LOCAL', game.home_short, game.home_color, game.home_logo, game.home_linescore, game.home_runs, game.home_hits, game.home_errors, game.home_runs > game.away_runs),
         ] %}
         <tr>
-            <td style="display: flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
-                {{ logo_img(logo) }}
-                <span style="color: {{ color }}; font-weight: 600;">{{ short }}</span>
+            <td class="linescore-team">
+                {{ logo_img(logo, css_class='inline-logo-md') }}
+                <span class="team-color-bold" style="--team-color: {{ color }}">{{ short }}</span>
             </td>
             {% if linescore %}
                 {% for inn in linescore.split(',') %}
-                <td class="num" style="{% if inn|int > 0 %}font-weight:700{% endif %}">{{ inn }}</td>
+                <td class="num {% if inn|int > 0 %}inn-scored{% endif %}">{{ inn }}</td>
                 {% endfor %}
             {% endif %}
-            <td class="num" style="border-left: 2px solid var(--border); font-weight: 700; {% if is_winner %}color: {{ color }}{% endif %}">{{ runs }}</td>
-            <td class="num" style="font-weight: 600;">{{ hits }}</td>
+            <td class="num linescore-sep fw-700 {% if is_winner %}team-color{% endif %}" {% if is_winner %}style="--team-color: {{ color }}"{% endif %}>{{ runs }}</td>
+            <td class="num fw-600">{{ hits }}</td>
             <td class="num">{{ errors }}</td>
         </tr>
         {% endfor %}
@@ -46,7 +47,7 @@
 </table>
 </div>
 
-<div style="color: var(--muted); font-size: 0.85rem; margin: 0.5rem 0 1.5rem;">
+<div class="text-muted mb-4">
     {{ pitcher_credits(game.wp_name, game.lp_name, game.sv_name) }}
 </div>
 
@@ -56,15 +57,17 @@
     (game.home_name, game.home_color, home_batting),
 ] %}
 {% if batting %}
-<h2 style="color: {{ color }}; font-size: 1rem; margin-top: 1.5rem;">{{ label }} - Bateo</h2>
-<table class="stats-table">
+<h2 class="team-color mt-5" style="--team-color: {{ color }}">{{ label }} - Bateo</h2>
+<div class="table-scroll">
+<table class="stats-table stat-table">
+    <caption class="sr-only">Bateo de {{ label }}</caption>
     <thead>
         <tr>
-            <th>Jugador</th><th>POS</th>
-            <th class="num">VB</th><th class="num">C</th><th class="num">H</th>
-            <th class="num">2B</th><th class="num">3B</th><th class="num">HR</th>
-            <th class="num">CI</th><th class="num">BB</th><th class="num">SO</th>
-            <th class="num">BR</th>
+            <th scope="col">Jugador</th><th scope="col">POS</th>
+            <th class="num" scope="col">VB</th><th class="num" scope="col">C</th><th class="num" scope="col">H</th>
+            <th class="num" scope="col">2B</th><th class="num" scope="col">3B</th><th class="num" scope="col">HR</th>
+            <th class="num" scope="col">CI</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th>
+            <th class="num" scope="col">BR</th>
         </tr>
     </thead>
     <tbody>
@@ -80,6 +83,7 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endif %}
 {% endfor %}
 
@@ -89,14 +93,16 @@
     (game.home_name, game.home_color, home_pitching),
 ] %}
 {% if pitching %}
-<h2 style="color: {{ color }}; font-size: 1rem; margin-top: 1.5rem;">{{ label }} - Pitcheo</h2>
-<table class="stats-table">
+<h2 class="team-color mt-5" style="--team-color: {{ color }}">{{ label }} - Pitcheo</h2>
+<div class="table-scroll">
+<table class="stats-table stat-table">
+    <caption class="sr-only">Pitcheo de {{ label }}</caption>
     <thead>
         <tr>
-            <th>Jugador</th>
-            <th class="num">IL</th><th class="num">H</th><th class="num">C</th>
-            <th class="num">CL</th><th class="num">BB</th><th class="num">SO</th>
-            <th class="num">HR</th>
+            <th scope="col">Jugador</th>
+            <th class="num" scope="col">IL</th><th class="num" scope="col">H</th><th class="num" scope="col">C</th>
+            <th class="num" scope="col">CL</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th>
+            <th class="num" scope="col">HR</th>
         </tr>
     </thead>
     <tbody>
@@ -116,11 +122,12 @@
         {% endfor %}
     </tbody>
 </table>
+</div>
 {% endif %}
 {% endfor %}
 
-<div style="margin-top: 1.5rem;">
-    <a href="{{ url_for('schedule.schedule') }}" class="btn btn-sm">&larr; Calendario</a>
+<div class="mt-5">
+    <a href="{{ url_for('schedule.schedule') }}" class="btn btn-secondary btn-sm">&larr; Calendario</a>
 </div>
 
 {% endblock %}

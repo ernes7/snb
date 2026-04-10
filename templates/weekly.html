@@ -1,107 +1,99 @@
 {% extends "base.html" %}
 {% from 'components/logo_img.html' import logo_img %}
-{% from 'components/pitcher_credits.html' import pitcher_credits %}
+{% from 'components/team_link.html' import team_link %}
+{% from 'components/game_card.html' import game_card %}
+{% from 'components/tweet_item.html' import tweet_item %}
 {% from 'components/empty_state.html' import empty_state %}
-{% block title %}Semana {{ week_num }} - Torneo MVP Cuba 2011{% endblock %}
+{% block title %}Semana {{ week_num }} - Serie Nacional{% endblock %}
 {% block content %}
-<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
-    <h1 style="margin: 0;">Resumen Semanal &mdash; Semana {{ week_num }}</h1>
-    <div style="display: flex; gap: 0.5rem;">
+<div class="flex-between">
+    <h1 class="mb-0">Resumen Semanal — Semana {{ week_num }}</h1>
+    <div class="flex-row">
         {% if week_num > 1 %}
-        <a href="{{ url_for('weekly.weekly', week_num=week_num - 1) }}" class="btn btn-sm">&larr; Semana {{ week_num - 1 }}</a>
+        <a href="{{ url_for('weekly.weekly', week_num=week_num - 1) }}" class="btn btn-secondary btn-sm">&larr; Semana {{ week_num - 1 }}</a>
         {% endif %}
         {% if week_num < max_week %}
-        <a href="{{ url_for('weekly.weekly', week_num=week_num + 1) }}" class="btn btn-sm">Semana {{ week_num + 1 }} &rarr;</a>
+        <a href="{{ url_for('weekly.weekly', week_num=week_num + 1) }}" class="btn btn-secondary btn-sm">Semana {{ week_num + 1 }} &rarr;</a>
         {% endif %}
     </div>
 </div>
 
 <h2>Resultados</h2>
-<div class="card">
+<div class="games-strip">
     {% for g in games %}
-    <div class="recent-game">
-        <span style="display: flex; align-items: center; gap: 0.5rem;">
-            <span style="color: var(--muted); font-size: 0.78rem; min-width: 28px;">#{{ g.game_num }}</span>
-            <span style="font-weight: 600;">{{ g.home_short }}</span>
-            <span class="game-score" style="{% if g.home_runs > g.away_runs %}font-weight:700{% endif %}">{{ g.home_runs }}</span>
-            <span style="color: var(--border);">&mdash;</span>
-            <span class="game-score" style="{% if g.away_runs > g.home_runs %}font-weight:700{% endif %}">{{ g.away_runs }}</span>
-            <span style="font-weight: 600;">{{ g.away_short }}</span>
-        </span>
-        <span style="color: var(--muted); font-size: 0.78rem;">
-            {{ pitcher_credits(g.wp_name, g.lp_name, g.sv_name) }}
-        </span>
-    </div>
+    {{ game_card(g) }}
     {% endfor %}
 </div>
 
 {% if potw_player %}
-<h2>Jugador de la Semana</h2>
-<div class="card" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem;">
-    {{ logo_img(potw_player.logo_file, 'inline-logo') }}
-    <div>
-        <strong>{{ potw_player.name }}</strong>
-        <span style="color: var(--muted); font-size: 0.85rem;">({{ potw_player.short_name }})</span>
-        {% if potw_summary %}
-        <div style="margin-top: 0.2rem; color: var(--muted); font-size: 0.82rem;">{{ potw_summary }}</div>
-        {% endif %}
+<div class="panel mt-3">
+    <h2>Jugador de la Semana</h2>
+    <div class="flex-center gap-3">
+        {{ logo_img(potw_player.logo_file, 'inline-logo') }}
+        <div>
+            <strong>{{ potw_player.name }}</strong>
+            <span class="text-muted text-sm">({{ potw_player.short_name }})</span>
+            {% if potw_summary %}
+            <div class="text-muted text-sm mt-1">{{ potw_summary }}</div>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endif %}
 
+{% if rankings or tweets %}
+<div class="bento">
 {% if rankings %}
-<h2>Tele Rebelde Power Rankings</h2>
-<table class="standings">
-    <thead>
-        <tr>
-            <th class="num">#</th>
-            <th style="width: 2.5rem;"></th>
-            <th>Equipo</th>
-            <th>Comentario</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for r in rankings %}
-        <tr>
-            <td class="num" style="font-weight: 700; font-size: 1.1rem;">{{ r.rank }}</td>
-            <td style="text-align: center; font-size: 0.78rem; white-space: nowrap;">
-                {% if r.prev_rank is not defined or r.prev_rank is none %}
-                    <span class="rank-new">NEW</span>
-                {% elif r.prev_rank > r.rank %}
-                    <span class="change-up">&#9650; {{ r.prev_rank - r.rank }}</span>
-                {% elif r.prev_rank < r.rank %}
-                    <span class="change-down">&#9660; {{ r.rank - r.prev_rank }}</span>
-                {% else %}
-                    <span class="change-same">&mdash;</span>
-                {% endif %}
-            </td>
-            <td style="display: flex; align-items: center; gap: 0.5rem;">
-                {% if r.team %}
-                {{ logo_img(r.team.logo_file) }}
-                <span style="color: {{ r.team.color_primary }}; font-weight: 600;">{{ r.team.name }}</span>
-                {% endif %}
-            </td>
-            <td style="color: var(--muted); font-size: 0.85rem;">{{ r.blurb if r.blurb }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="panel">
+    <h2>Power Rankings</h2>
+    <table class="standings stat-table">
+        <caption class="sr-only">Power Rankings Tele Rebelde</caption>
+        <thead>
+            <tr>
+                <th class="num" scope="col">#</th>
+                <th scope="col"></th>
+                <th scope="col">Equipo</th>
+                <th scope="col">Comentario</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rankings %}
+            <tr>
+                <td class="num pr-rank">{{ r.rank }}</td>
+                <td class="pr-change">
+                    {% if r.prev_rank is not defined or r.prev_rank is none %}
+                        <span class="rank-new">NEW</span>
+                    {% elif r.prev_rank > r.rank %}
+                        <span class="change-up">&#9650; {{ r.prev_rank - r.rank }}</span>
+                    {% elif r.prev_rank < r.rank %}
+                        <span class="change-down">&#9660; {{ r.rank - r.prev_rank }}</span>
+                    {% else %}
+                        <span class="change-same">&mdash;</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="pr-team-cell">
+                    {% if r.team %}
+                    {{ team_link(r.team.short_name, r.team.name, r.team.color_primary, r.team.logo_file) }}
+                    {% endif %}
+                    </span>
+                </td>
+                <td class="text-muted text-sm">{{ r.blurb if r.blurb }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 {% endif %}
 
 {% if tweets %}
-<h2>Comentarios de Analistas</h2>
-<div class="card">
+<div class="panel">
+    <h2>Comentarios de Analistas</h2>
     {% for t in tweets %}
-    <div class="tweet" style="display: flex; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border);">
-        {% if t.avatar_file %}
-        <img src="{{ url_for('static', filename='graphics/' + t.avatar_file) }}" class="tweet-avatar" alt="{{ t.handle }}">
-        {% endif %}
-        <div>
-            <div style="font-weight: 600; font-size: 0.85rem;">@{{ t.handle }}</div>
-            <div style="color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem;">{{ t.texto }}</div>
-        </div>
-    </div>
+    {{ tweet_item(t.handle, t.texto, t.avatar_file) }}
     {% endfor %}
+</div>
+{% endif %}
 </div>
 {% elif not potw_player and not rankings %}
 {{ empty_state("Contenido semanal pendiente. Ejecuta weekly.py para generar.") }}

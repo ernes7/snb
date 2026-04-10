@@ -1,6 +1,6 @@
-{# Pitcher win/loss/save credits line #}
-{% macro pitcher_credits(wp_name, lp_name, sv_name=None) %}
-{% if wp_name %}PG: {{ wp_name }}{% endif %}
-{% if lp_name %} &middot; PP: {{ lp_name }}{% endif %}
-{% if sv_name %} &middot; SV: {{ sv_name }}{% endif %}
+{# Pitcher win/loss/save credits line with optional records #}
+{% macro pitcher_credits(wp_name, lp_name, sv_name=None, wp_w=None, wp_l=None, lp_w=None, lp_l=None, sv_count=None) %}
+{% if wp_name %}PG: {{ wp_name }}{% if wp_w is not none %} ({{ wp_w|int }}-{{ wp_l|int|default(0) }}){% endif %}{% endif %}
+{% if lp_name %} &middot; PP: {{ lp_name }}{% if lp_w is not none %} ({{ lp_w|int|default(0) }}-{{ lp_l|int }}){% endif %}{% endif %}
+{% if sv_name %} &middot; SV: {{ sv_name }}{% if sv_count is not none %} ({{ sv_count|int }}){% endif %}{% endif %}
 {% endmacro %}

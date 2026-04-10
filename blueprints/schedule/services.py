@@ -122,3 +122,59 @@ def get_unavailable_pitchers() -> dict[str, list[dict[str, Any]]]:
                 result[key] = unavailable
 
     return result
+
+
+def get_probable_starters() -> dict[str, str]:
+    """Get probable starting pitcher for each upcoming game + team.
+
+    Returns dict keyed by '{schedule_id}_{team_id}' → pitcher name.
+    """
+    from services.weekly import _get_best_available_pitcher
+    db = get_db()
+    unavailable = get_unavailable_pitchers()
+
+    unplayed = db.execute("""
+        SELECT s.id as schedule_id, s.week_num, s.home_team_id, s.away_team_id
+        FROM schedule s
+        LEFT JOIN games g ON g.schedule_id = s.id
+        WHERE s.phase = 'regular' AND g.id IS NULL
+        ORDER BY s.game_num
+    """).fetchall()
+
+    result: dict[str, str] = {}
+    for game in unplayed:
+        for tid in (game["home_team_id"], game["away_team_id"]):
+            _, name = _get_best_available_pitcher(
+                db, tid, game["week_num"], unavailable,
+            )
+            if name:
+                result[f"{game['schedule_id']}_{tid}"] = name
+    return result
+
+
+def get_game_picks_for_schedule() -> dict[int, list[dict[str, Any]]]:
+    """Get analyst game picks keyed by schedule_id.
+
+    Returns {schedule_id: [{analyst_id, handle, avatar_file, emoji, picked_team_id}]}.
+    """
+    db = get_db()
+    rows = db.execute("""
+        SELECT p.schedule_id, p.analyst_id, p.picked_team_id,
+            a.handle, a.avatar_file, a.emoji
+        FROM analyst_game_picks p
+        JOIN analysts a ON p.analyst_id = a.id
+        ORDER BY p.schedule_id, a.id
+    """).fetchall()
+    result: dict[int, list[dict[str, Any]]] = {}
+    for r in rows:
+        result.setdefault(r["schedule_id"], []).append(dict(r))
+    return result
+
+
+def get_games_of_week() -> set[int]:
+    """Get set of schedule_ids marked as game of the week."""
+    db = get_db()
+    rows = db.execute(
+        "SELECT game_of_week_id FROM weekly_awards WHERE game_of_week_id IS NOT NULL"
+    ).fetchall()
+    return {r["game_of_week_id"] for r in rows}

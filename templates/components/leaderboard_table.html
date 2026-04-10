@@ -1,0 +1,44 @@
+{# Leaderboard table for stat leaders — variable stat columns
+   stat_cols: list of (header, key, is_bold) tuples
+   format_map: optional dict of {key: format_string} for special formatting (e.g. {"AVG": "%.3f"})
+#}
+{% from 'components/logo_img.html' import logo_img %}
+{% macro leaderboard_table(title, caption, players, stat_cols, format_map={}, panel_class='') %}
+<div class="panel {{ panel_class }}">
+    <h2>{{ title }}</h2>
+    <table class="leaderboard stat-table">
+        <caption class="sr-only">{{ caption }}</caption>
+        <thead>
+            <tr>
+                <th class="num" scope="col">#</th>
+                <th scope="col">Jugador</th>
+                <th scope="col"></th>
+                {% for header, key, bold in stat_cols %}
+                <th class="num" scope="col">{{ header }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for p in players %}
+        <tr>
+            <td class="num">{{ loop.index }}</td>
+            <td><a href="{{ url_for('players.player', player_id=p.id) }}">{{ p.name }}</a></td>
+            <td>{{ logo_img(p.logo_file, css_class='inline-logo-md', alt=p.short_name) }}</td>
+            {% for header, key, bold in stat_cols %}
+            <td class="num {% if bold %}pct{% endif %}">
+                {% set val = p[key] %}
+                {% if key in format_map %}
+                    {% if bold %}<strong>{{ format_map[key]|format(val) }}</strong>{% else %}{{ format_map[key]|format(val) }}{% endif %}
+                {% elif key == 'IP_outs' %}
+                    {% if bold %}<strong>{{ format_ip(val) }}</strong>{% else %}{{ format_ip(val) }}{% endif %}
+                {% else %}
+                    {% if bold %}<strong>{{ val }}</strong>{% else %}{{ val }}{% endif %}
+                {% endif %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endmacro %}

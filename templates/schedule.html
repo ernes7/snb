@@ -1,42 +1,59 @@
 {% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
 {% from 'components/pitcher_credits.html' import pitcher_credits %}
-{% block title %}Calendario - Torneo MVP Cuba 2011{% endblock %}
+{% block title %}Calendario - Serie Nacional{% endblock %}
 {% block content %}
 <h1>Temporada Regular</h1>
-<p style="color: var(--muted); margin-bottom: 1rem;">{{ played }}/96 juegos completados</p>
+<p class="text-muted mb-4">{{ played }}/96 juegos completados</p>
 
 {% for week_num, week_games in weeks %}
 <div class="schedule-week">
-    <h3 class="week-header">Semana {{ week_num }}</h3>
+    <div class="week-header">
+        <span class="sched-num">Semana {{ week_num }}</span>
+        <div class="week-legend sched-matchup">
+            <span class="sched-team home">LOCAL</span>
+            <span class="sched-vs"></span>
+            <span class="sched-team away">VISIT</span>
+        </div>
+        <div class="sched-details"></div>
+    </div>
     <div class="schedule-list">
     {% for g in week_games %}
-        <div class="sched-row {% if g.home_runs is not none %}played{% endif %} {% if g.home_runs is not none and g.home_runs > g.away_runs %}home-win{% elif g.home_runs is not none and g.away_runs > g.home_runs %}away-win{% endif %}">
+        {% set game_picks = picks.get(g.id, []) %}
+        <div class="sched-row {% if g.home_runs is not none %}played{% endif %} {% if g.home_runs is not none and g.home_runs > g.away_runs %}home-win{% elif g.home_runs is not none and g.away_runs > g.home_runs %}away-win{% endif %} {% if g.id in games_of_week %}game-of-week{% endif %}">
+            {% if g.id in games_of_week %}
+            <span class="gotw-badge">Juego de la Semana</span>
+            {% endif %}
             <div class="sched-num">#{{ g.game_num }}</div>
             <div class="sched-matchup">
                 <div class="sched-team home">
-                    <span class="sched-tag">LOCAL</span>
-                    <a href="{{ url_for('teams.team', short=g.home_short) }}" class="sched-name" style="color: {{ g.home_color }}">{{ g.home_name }}</a>
-                    {% if g.home_logo %}
-                    <img src="{{ url_for('static', filename='graphics/' + g.home_logo) }}" class="sched-logo">
+                    {% for p in game_picks if p.picked_team_id == g.home_team_id %}
+                    {% if p.avatar_file %}
+                    <img src="{{ url_for('static', filename='graphics/' + p.avatar_file) }}" class="sched-pick" alt="{{ p.handle }}" title="{{ p.handle }}">
                     {% endif %}
+                    {% endfor %}
+                    <a href="{{ url_for('teams.team', short=g.home_short) }}" class="sched-name team-color" style="--team-color: {{ g.home_color }}">{{ g.home_name }}</a>
+                    <div class="sched-logo-wrap">{{ logo_img(g.home_logo, css_class='sched-logo', alt=g.home_name) }}</div>
                 </div>
                 <div class="sched-vs">
                     {% if g.home_runs is not none %}
-                        <a href="{{ url_for('games.game_detail', game_id=g.game_id) }}" style="text-decoration: none; display: flex; align-items: center; gap: 0.3rem;">
-                        <span class="sched-score {% if g.home_runs > g.away_runs %}winner{% endif %}" style="{% if g.home_runs > g.home_runs %}color: {{ g.home_color }}{% endif %}">{{ g.home_runs }}</span>
+                        <a href="{{ url_for('games.game_detail', game_id=g.game_id) }}" class="sched-score-link">
+                        <span class="sched-score stat-num {% if g.home_runs > g.away_runs %}winner team-color{% endif %}" {% if g.home_runs > g.away_runs %}style="--team-color: {{ g.home_color }}"{% endif %}>{{ g.home_runs }}</span>
                         <span class="sched-dash">&mdash;</span>
-                        <span class="sched-score {% if g.away_runs > g.home_runs %}winner{% endif %}" style="{% if g.away_runs > g.home_runs %}color: {{ g.away_color }}{% endif %}">{{ g.away_runs }}</span>
+                        <span class="sched-score stat-num {% if g.away_runs > g.home_runs %}winner team-color{% endif %}" {% if g.away_runs > g.home_runs %}style="--team-color: {{ g.away_color }}"{% endif %}>{{ g.away_runs }}</span>
                         </a>
                     {% else %}
                         <span class="sched-vs-text">VS</span>
                     {% endif %}
                 </div>
                 <div class="sched-team away">
-                    {% if g.away_logo %}
-                    <img src="{{ url_for('static', filename='graphics/' + g.away_logo) }}" class="sched-logo">
+                    <div class="sched-logo-wrap">{{ logo_img(g.away_logo, css_class='sched-logo', alt=g.away_name) }}</div>
+                    <a href="{{ url_for('teams.team', short=g.away_short) }}" class="sched-name team-color" style="--team-color: {{ g.away_color }}">{{ g.away_name }}</a>
+                    {% for p in game_picks if p.picked_team_id == g.away_team_id %}
+                    {% if p.avatar_file %}
+                    <img src="{{ url_for('static', filename='graphics/' + p.avatar_file) }}" class="sched-pick" alt="{{ p.handle }}" title="{{ p.handle }}">
                     {% endif %}
-                    <a href="{{ url_for('teams.team', short=g.away_short) }}" class="sched-name" style="color: {{ g.away_color }}">{{ g.away_name }}</a>
-                    <span class="sched-tag">VISIT</span>
+                    {% endfor %}
                 </div>
             </div>
             <div class="sched-details">
@@ -46,14 +63,24 @@
                     </span>
                 {% endif %}
             </div>
+        </div>
             {% if g.home_runs is none %}
+            {% set home_starter = starters.get('%d_%d'|format(g.id, g.home_team_id)) %}
+            {% set away_starter = starters.get('%d_%d'|format(g.id, g.away_team_id)) %}
+            {% if home_starter or away_starter %}
+            <div class="sched-starters">
+                <span class="starter-label team-color" style="--team-color: {{ g.home_color }}">{{ home_starter or '?' }}</span>
+                <span class="starter-vs">vs</span>
+                <span class="starter-label team-color" style="--team-color: {{ g.away_color }}">{{ away_starter or '?' }}</span>
+            </div>
+            {% endif %}
             {% set home_unav = unavailable.get('%d_%d'|format(g.id, g.home_team_id), []) %}
             {% set away_unav = unavailable.get('%d_%d'|format(g.id, g.away_team_id), []) %}
             {% if home_unav or away_unav %}
             <div class="sched-unavailable">
                 {% if home_unav %}
                 <div class="unav-team">
-                    <span class="unav-label" style="color: {{ g.home_color }}">{{ g.home_short }} no disponibles:</span>
+                    <span class="unav-label team-color" style="--team-color: {{ g.home_color }}">{{ g.home_short }} no disponibles:</span>
                     {% for p in home_unav %}
                     <span class="unav-pitcher" title="{{ p.pitches }} lanz, descansa {{ p.rest_games }} juegos ({{ p.games_rested }} cumplidos)">{{ p.name }}</span>
                     {% endfor %}
@@ -61,7 +88,7 @@
                 {% endif %}
                 {% if away_unav %}
                 <div class="unav-team">
-                    <span class="unav-label" style="color: {{ g.away_color }}">{{ g.away_short }} no disponibles:</span>
+                    <span class="unav-label team-color" style="--team-color: {{ g.away_color }}">{{ g.away_short }} no disponibles:</span>
                     {% for p in away_unav %}
                     <span class="unav-pitcher" title="{{ p.pitches }} lanz, descansa {{ p.rest_games }} juegos ({{ p.games_rested }} cumplidos)">{{ p.name }}</span>
                     {% endfor %}
@@ -70,7 +97,6 @@
             </div>
             {% endif %}
             {% endif %}
-        </div>
     {% endfor %}
     </div>
 </div>

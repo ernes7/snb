@@ -14,7 +14,22 @@ def get_recent_games(limit: int = 10) -> list[sqlite3.Row]:
             ht.color_primary as home_color, ht.logo_file as home_logo,
             at.name as away_name, at.short_name as away_short, at.owner as away_owner,
             at.color_primary as away_color, at.logo_file as away_logo,
-            wp.name as wp_name, lp.name as lp_name, sp.name as sp_name
+            wp.name as wp_name, lp.name as lp_name, sp.name as sp_name,
+            (SELECT SUM(ps.W) FROM pitching_stats ps
+             JOIN games g2 ON ps.game_id = g2.id
+             WHERE ps.player_id = g.winning_pitcher_id AND g2.id <= g.id) as wp_w,
+            (SELECT SUM(ps.L) FROM pitching_stats ps
+             JOIN games g2 ON ps.game_id = g2.id
+             WHERE ps.player_id = g.winning_pitcher_id AND g2.id <= g.id) as wp_l,
+            (SELECT SUM(ps.W) FROM pitching_stats ps
+             JOIN games g2 ON ps.game_id = g2.id
+             WHERE ps.player_id = g.losing_pitcher_id AND g2.id <= g.id) as lp_w,
+            (SELECT SUM(ps.L) FROM pitching_stats ps
+             JOIN games g2 ON ps.game_id = g2.id
+             WHERE ps.player_id = g.losing_pitcher_id AND g2.id <= g.id) as lp_l,
+            (SELECT SUM(ps.SV) FROM pitching_stats ps
+             JOIN games g2 ON ps.game_id = g2.id
+             WHERE ps.player_id = g.save_pitcher_id AND g2.id <= g.id) as sv_count
         FROM games g
         JOIN schedule s ON g.schedule_id = s.id
         JOIN teams ht ON s.home_team_id = ht.id

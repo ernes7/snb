@@ -1,0 +1,26 @@
+{# Game result card — used in games-strip on homepage and weekly #}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/pitcher_credits.html' import pitcher_credits %}
+{% macro game_card(g, link=true) %}
+{% if link %}
+<a href="{{ url_for('games.game_detail', game_id=g.id) }}" class="game-card">
+{% else %}
+<div class="game-card">
+{% endif %}
+    {{ logo_img(g.home_logo, css_class='game-card-bg game-card-bg-left') }}
+    {{ logo_img(g.away_logo, css_class='game-card-bg game-card-bg-right') }}
+    <span class="game-card-num">#{{ g.game_num }}</span>
+    <div class="game-card-teams">
+        <span class="game-card-score">
+            <span class="{% if g.home_runs > g.away_runs %}winner{% endif %}">{{ g.home_runs }}</span>
+            <span class="score-dash">-</span>
+            <span class="{% if g.away_runs > g.home_runs %}winner{% endif %}">{{ g.away_runs }}</span>
+        </span>
+    </div>
+    <span class="game-card-pitchers">{{ pitcher_credits(g.wp_name, g.lp_name, wp_w=g.wp_w, wp_l=g.wp_l, lp_w=g.lp_w, lp_l=g.lp_l) }}</span>
+{% if link %}
+</a>
+{% else %}
+</div>
+{% endif %}
+{% endmacro %}

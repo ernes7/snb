@@ -139,8 +139,18 @@ CREATE TABLE weekly_awards (
     potw_player_id INTEGER REFERENCES players(id),
     potw_summary TEXT,
     power_rankings TEXT,
+    game_of_week_id INTEGER REFERENCES schedule(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(week_num)
+);
+
+CREATE TABLE analyst_game_picks (
+    id INTEGER PRIMARY KEY,
+    analyst_id INTEGER REFERENCES analysts(id),
+    schedule_id INTEGER REFERENCES schedule(id),
+    picked_team_id INTEGER REFERENCES teams(id),
+    week_num INTEGER NOT NULL,
+    UNIQUE(analyst_id, schedule_id)
 );
 
 CREATE TABLE batting_stats (

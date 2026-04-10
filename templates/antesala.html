@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% from 'components/tweet_item.html' import tweet_item %}
+{% from 'components/empty_state.html' import empty_state %}
 {% block title %}Antesala - Torneo MVP Cuba 2011{% endblock %}
 {% block content %}
 
@@ -16,56 +18,52 @@
     <span class="format-tag">Ernesto vs Junior</span>
 </div>
 
-<!-- ANALYSTS — compact strip -->
-<div class="analysts-strip">
+<!-- PREDICTIONS — tabbed -->
+<h2>Predicciones</h2>
+<div class="preds-tabs">
 {% for a in analysts %}
-<div class="analyst-chip">
-    {% if a.avatar_file %}
-    <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="chip-avatar" alt="{{ a.handle }}">
-    {% else %}
-    <span class="chip-emoji">{{ a.emoji }}</span>
-    {% endif %}
-    <div class="chip-info">
-        <strong>{{ a.handle }}</strong>
-        <span class="chip-teams">
-            <span class="chip-fav">&#10084; {{ a.fav_name }}</span>
-            <span class="chip-hate">&#128128; {{ a.hate_name }}</span>
-        </span>
-    </div>
-    {% if a.handle in preds_by_analyst %}
-    <button class="btn btn-sm btn-preds" onclick="openPreds('{{ a.handle }}')">Predicciones</button>
-    {% endif %}
-</div>
+{% if a.handle in preds_by_analyst %}
+    <button class="pred-tab {% if loop.first %}active{% endif %}"
+            data-handle="{{ a.handle }}"
+            onclick="switchPredTab('{{ a.handle }}')">
+        {% if a.avatar_file %}
+        <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="tab-avatar" alt="{{ a.handle }}">
+        {% else %}
+        <span class="chip-emoji">{{ a.emoji }}</span>
+        {% endif %}
+        {{ a.handle }}
+    </button>
+{% endif %}
 {% endfor %}
 </div>
 
-<!-- PREDICTION MODALS -->
 {% for a in analysts %}
 {% if a.handle in preds_by_analyst %}
-<div class="modal-overlay" id="modal-{{ a.handle }}" onclick="closePreds(event, '{{ a.handle }}')">
-    <div class="modal-content" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            {% if a.avatar_file %}
-            <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="chip-avatar" alt="{{ a.handle }}">
-            {% else %}
-            <span class="chip-emoji">{{ a.emoji }}</span>
-            {% endif %}
-            <div>
-                <strong class="analyst-name">{{ a.handle }}</strong>
-                <span class="analyst-age">{{ a.edad }} anos</span>
-            </div>
-            <button class="modal-close" onclick="closePreds(event, '{{ a.handle }}')">&times;</button>
+<div class="pred-panel {% if loop.first %}active{% endif %}" id="panel-{{ a.handle }}">
+    <div class="pred-panel-header">
+        {% if a.avatar_file %}
+        <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="pred-panel-avatar" alt="{{ a.handle }}">
+        {% else %}
+        <span class="chip-emoji">{{ a.emoji }}</span>
+        {% endif %}
+        <div>
+            <strong class="analyst-name">{{ a.handle }}</strong>
+            <span class="analyst-age">{{ a.edad }} anos</span>
+            <span class="chip-teams">
+                <span class="chip-fav">&#10084; {{ a.fav_name }}</span>
+                <span class="chip-hate">&#128128; {{ a.hate_name }}</span>
+            </span>
         </div>
-        <p class="analyst-bio">{{ a.descripcion }}</p>
-        <div class="modal-preds">
-        {% for p in preds_by_analyst[a.handle] %}
-            <div class="prediction">
-                <div class="pred-num">Prediccion {{ p.pred_num }}</div>
-                <div class="pred-title">{{ p.titulo }}</div>
-                <div class="pred-text">{{ p.texto }}</div>
-            </div>
-        {% endfor %}
+    </div>
+    <p class="analyst-bio">{{ a.descripcion }}</p>
+    <div class="pred-list">
+    {% for p in preds_by_analyst[a.handle] %}
+        <div class="prediction">
+            <div class="pred-num">Prediccion {{ p.pred_num }}</div>
+            <div class="pred-title">{{ p.titulo }}</div>
+            <div class="pred-text">{{ p.texto }}</div>
         </div>
+    {% endfor %}
     </div>
 </div>
 {% endif %}
@@ -86,47 +84,20 @@
         <div class="game-line"></div>
     </div>
     {% for t in data.tweets %}
-    <div class="tweet">
-        <div class="tweet-header">
-            {% if t.avatar_file %}
-            <img src="{{ url_for('static', filename='graphics/' + t.avatar_file) }}" class="tweet-avatar" alt="{{ t.handle }}">
-            {% else %}
-            <span class="tweet-emoji">{{ t.emoji }}</span>
-            {% endif %}
-            <strong>{{ t.handle }}</strong>
-            <span class="tweet-handle">@{{ t.handle }}</span>
-        </div>
-        <div class="tweet-text">{{ t.texto }}</div>
-    </div>
+    {{ tweet_item(t.handle, t.texto, t.avatar_file, t.emoji) }}
     {% endfor %}
     {% endfor %}
 {% else %}
-    <div class="empty-feed">
-        <div class="empty-icon">&#9918;</div>
-        <p>La temporada aun no ha comenzado.<br>Los tweets apareceran aqui cuando se juegue el primer partido.</p>
-    </div>
+    {{ empty_state("La temporada aun no ha comenzado. Los tweets apareceran aqui cuando se juegue el primer partido.") }}
 {% endif %}
 
 <script>
-function openPreds(handle) {
-    document.getElementById('modal-' + handle).classList.add('active');
-    document.body.style.overflow = 'hidden';
+function switchPredTab(handle) {
+    document.querySelectorAll('.pred-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.pred-panel').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelector('.pred-tab[data-handle="' + handle + '"]').classList.add('active');
+    document.getElementById('panel-' + handle).classList.add('active');
 }
-function closePreds(e, handle) {
-    const modal = document.getElementById('modal-' + handle);
-    if (e.target === modal || e.currentTarget.classList.contains('modal-close')) {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-}
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        document.querySelectorAll('.modal-overlay.active').forEach(function(m) {
-            m.classList.remove('active');
-        });
-        document.body.style.overflow = '';
-    }
-});
 </script>
 
 {% endblock %}

@@ -1,6 +1,6 @@
 # MVP Cuba 2011 Tournament Tracker
 
-Baseball tournament tracker for a simulated Cuban National Series season played in MVP Baseball 2005. Two owners (Ernesto and Junior) each control 4 teams. The app tracks standings, schedules, game results, player stats, a draft system, playoffs, and an "antesala" (pre-game show) with analyst commentary.
+Baseball tournament tracker for a simulated Cuban National Series season played in MVP Baseball 2005. Two owners (Ernesto and Junior) each control 4 teams. Tracks standings, schedules, game results, player stats, draft, playoffs, and "antesala" (pre-game show).
 
 ## Stack
 
@@ -25,238 +25,125 @@ Follow `flask-sqlite-engineering-principles.md` in this repo. Key rules:
 ## Project Structure
 
 ```
-TOrneo/
-├── app.py                          # create_app() factory, blueprint registration
-├── config.py                       # BaseConfig, DevConfig, ProdConfig
-├── db.py                           # get_db(), close_db(), init_app() — WAL mode
+Torneo/
+├── app.py                        # create_app() factory
+├── config.py                     # BaseConfig, DevConfig, ProdConfig
+├── db.py                         # get_db(), close_db(), init_app()
 ├── blueprints/
-│   ├── main/                       # / (index, standings)
-│   │   ├── __init__.py             # main_bp
-│   │   ├── routes.py
-│   │   └── services.py             # get_recent_games()
-│   ├── teams/                      # /team/<short>
-│   │   ├── __init__.py             # teams_bp
-│   │   ├── routes.py
-│   │   └── services.py             # get_team(), get_roster(), team leaders
-│   ├── players/                    # /player/<int:player_id>
-│   │   ├── __init__.py             # players_bp
-│   │   ├── routes.py
-│   │   └── services.py             # get_player(), batting/pitching logs & totals
-│   ├── schedule/                   # /schedule
-│   │   ├── __init__.py             # schedule_bp
-│   │   ├── routes.py
-│   │   └── services.py             # get_schedule_games()
-│   ├── games/                      # /game/new/<id>, /game/save (POST)
-│   │   ├── __init__.py             # games_bp
-│   │   ├── routes.py
-│   │   ├── services.py             # get_game_form_data(), save_game(), get_game_detail()
-│   │   └── boxscore_services.py    # get_boxscore_form_data(), save_boxscore()
-│   ├── draft/                      # /draft
-│   │   ├── __init__.py             # draft_bp
-│   │   ├── routes.py
-│   │   └── services.py             # get_draft_picks(), get_draft_teams()
-│   ├── playoffs/                   # /playoffs
-│   │   ├── __init__.py             # playoffs_bp
-│   │   ├── routes.py
-│   │   └── services.py             # get_series()
-│   ├── leaders/                    # /leaders
-│   │   ├── __init__.py             # leaders_bp
-│   │   ├── routes.py
-│   │   └── services.py             # batting/pitching leader queries
-│   ├── antesala/                   # /antesala
-│   │   ├── __init__.py             # antesala_bp
-│   │   ├── routes.py
-│   │   └── services.py             # analysts, predictions, tweets
-│   └── weekly/                     # /weekly
-│       ├── __init__.py             # weekly_bp
-│       └── routes.py
+│   ├── main/                     # / (standings + recent games)
+│   ├── teams/                    # /team/<short>
+│   ├── players/                  # /player/<id>, /jugadores
+│   ├── schedule/                 # /schedule
+│   ├── games/                    # /game/new/<id>, /game/save
+│   ├── draft/                    # /draft
+│   ├── playoffs/                 # /playoffs
+│   ├── leaders/                  # /leaders
+│   ├── antesala/                 # /antesala
+│   └── weekly/                   # /weekly, /weekly/<week_num>
 ├── services/
-│   ├── standings.py                # get_standings(), get_all_teams() — shared
-│   ├── weekly.py                   # weekly summaries, awards, tweets
-│   ├── power_rankings.py           # compute_power_rankings() — deterministic formula
-│   ├── game_import.py              # insert_game() — complete game entry from box scores
-│   └── attributes_import.py        # bulk_upsert() — player attributes from roster screenshots
-├── lib/
-│   └── utils.py                    # format_ip() — registered as Jinja2 global
+│   ├── standings.py              # get_standings(), get_all_teams()
+│   ├── weekly.py                 # weekly summaries, awards, tweets
+│   ├── power_rankings.py         # compute_power_rankings()
+│   ├── game_import.py            # insert_game() + validate_game()
+│   └── attributes_import.py      # bulk_upsert()
+├── lib/utils.py                  # format_ip() — Jinja2 global
 ├── templates/
-│   ├── base.html                   # Master layout with nav
-│   ├── components/                 # Reusable Jinja2 macros
-│   │   ├── logo_img.html           # logo_img(logo_file, css_class, alt)
-│   │   ├── team_link.html          # team_link(short, name, color, logo_file)
-│   │   ├── stat_box.html           # stat_box(value, label)
-│   │   ├── game_score.html         # game_score(home, away, h_color, a_color)
-│   │   ├── pitcher_credits.html    # pitcher_credits(wp, lp, sv)
-│   │   ├── owner_badge.html        # owner_badge(owner)
-│   │   ├── empty_state.html        # empty_state(message)
-│   │   ├── player_cell.html        # player_cell(player, show_full_name)
-│   │   ├── section_label.html      # section_label(text)
-│   │   └── series_table.html       # series_table(title, games)
-│   ├── errors/
-│   │   ├── 404.html
-│   │   └── 500.html
-│   ├── index.html                  # Homepage: standings + recent games
-│   ├── team.html                   # Team detail: roster, batting/pitching leaders
-│   ├── player.html                 # Player detail: attributes, draft info, game log
-│   ├── schedule.html               # 96-game regular season schedule
-│   ├── game_form.html              # Enter/edit game results (score, pitchers)
-│   ├── draft.html                  # Draft picks tracker + team rankings
-│   ├── playoffs.html               # Playoff bracket (semi A, semi B, final)
-│   ├── leaders.html                # Statistical leaders (AVG, HR, RBI, ERA)
-│   ├── antesala.html               # Analysts, predictions, tweets
-│   └── weekly.html                 # Weekly recap: POTW, power rankings, tweets
+│   ├── base.html
+│   ├── components/               # Reusable macros: logo_img, team_link, game_card,
+│   │                             #   game_score, pitcher_credits, pitcher_select,
+│   │                             #   leaderboard_table, tweet_item, owner_badge,
+│   │                             #   empty_state, player_cell, stat_box, section_label,
+│   │                             #   series_table
+│   ├── errors/                   # 404.html, 500.html
+│   └── *.html                    # Page templates
 ├── static/
-│   ├── style.css                   # Single stylesheet (~400 lines, CSS variables)
-│   └── graphics/                   # Team logos (PNG), player photos, banners
-├── schema.sql                      # Reference DDL for all tables (do NOT run on populated DB)
-├── weekly.py                       # CLI: python weekly.py <week_num> — prints weekly summary
+│   ├── style.css                 # Design system (CSS variables, bento grid, utilities)
+│   ├── app.js                    # Sidebar toggle, card animations, sortable tables
+│   └── graphics/                 # Team logos, player photos, banners
+├── schema.sql                    # Reference DDL only — do NOT run on populated DB
 ├── scripts/
-│   ├── create_tournament.py        # Generates Excel workbook with tournament info
-│   └── crop_attributes.py          # Crops roster screenshots to attribute area
-├── torneo.db                       # SQLite database (populated, git-ignored)
-├── Dockerfile                      # Python 3.12 + gunicorn production image
-├── docker-compose.yml              # Single-service with volume for DB persistence
-├── requirements.txt                # flask, openpyxl, gunicorn
-└── flask-sqlite-engineering-principles.md
+│   ├── create_tournament.py
+│   └── crop_attributes.py
+├── DESIGN.md                     # UI design spec
+└── torneo.db                     # Live SQLite database
 ```
 
-## Routes (blueprint-qualified)
+Each blueprint has `__init__.py`, `routes.py`, and `services.py` (except weekly which has services in `services/weekly.py`).
 
-| Route | Endpoint | Purpose |
-|-------|----------|---------|
-| `/` | `main.index` | Standings table + last 10 games |
-| `/team/<short>` | `teams.team` | Team roster, record, batting/pitching leaders |
-| `/player/<int:player_id>` | `players.player` | Full player page with attributes, stats, game log |
-| `/schedule` | `schedule.schedule` | Regular season schedule with scores |
-| `/game/new/<int:schedule_id>` | `games.game_new` | Game entry/edit form |
-| `/game/save` (POST) | `games.game_save` | Save game result |
-| `/draft` | `draft.draft` | Draft picks display |
-| `/playoffs` | `playoffs.playoffs` | Playoff bracket |
-| `/leaders` | `leaders.leaders` | League statistical leaders |
-| `/antesala` | `antesala.antesala` | Analyst show: predictions + tweets |
-| `/weekly` | `weekly.weekly` | Weekly recap: POTW, rankings, tweets |
-| `/weekly/<int:week_num>` | `weekly.weekly` | Weekly recap for specific week |
-| `/jugadores` | `players.all_players` | All players database with attributes |
+## UI Component Patterns
+
+- **All logos** go through `logo_img(file, css_class, alt)` macro — never raw `<img>` tags for logos
+- **Logo sizes**: `inline-logo` (64px default), `inline-logo-md` (32px), `inline-logo-sm` (16px)
+- **Logo bleed**: Oversized logos cropped by container's `overflow: hidden`. Used in game cards (horizontal) and standings rows (vertical + left). See DESIGN.md §5.5.
+- **`{% block scripts %}`** in `base.html` runs after `app.js` — always put page JS there, not in `{% block content %}` (app.js won't be loaded yet)
+- **Sortable tables**: Add `data-sort="num"` or `data-sort="text"` to `<th>`, call `initSortableTable(el)` in `{% block scripts %}`
+- **Component-first**: No copy-paste HTML. If markup appears in 2+ templates, extract to a macro in `templates/components/`
 
 ## Database Schema (torneo.db)
 
-| Table | Purpose |
-|-------|---------|
-| `teams` | 8 teams with rankings, colors, logos, owner (Ernesto/Junior). **Key columns:** `short_name` (not `short`), `name`, `full_name`, `owner`, `color_primary`, `logo_file` |
-| `players` | ~75 players — role: lineup/bench/rotation/bullpen. **Key columns:** `name`, `team_id`, `position`, `bats_throws` (not separate `bats`/`throws`), `role`, `bullpen_role`, `lineup_order`, `is_drafted` |
-| `draft_picks` | 24 picks (3 rounds, 8 teams) linking to player IDs |
-| `schedule` | 96 regular + playoff games. **Key columns:** `game_num` (not `game_number`), `week_num`, `home_team_id`, `away_team_id`, `phase`, `series_game` |
-| `games` | Results: score, hits, errors, W/L/S pitchers |
-| `player_attributes` | Power, contact, speed, pitch ratings per player. Pitch columns: fastball, slider, curveball, sinker, changeup, splitter, screwball, cutter, curveball_dirt |
-| `batting_stats` | Per-game: AB, R, H, 2B, 3B, HR, RBI, BB, SO, SB |
-| `pitching_stats` | Per-game: IP_outs, H, R, ER, BB, SO, HR, W, L, SV |
-| `analysts` | 4 commentator personalities with favorite/hated teams |
-| `analyst_predictions` | Pre-season predictions per analyst |
-| `analyst_tweets` | Game/weekly commentary per analyst (week_num for weekly) |
-| `weekly_awards` | Player of the Week + Tele Rebelde Power Rankings per week |
-
-**IP_outs:** Pitching innings are stored as total outs (not innings). Use `format_ip()` to display (e.g., 19 outs = "6.1").
-
-## Key Architecture Patterns
-
-- **App factory:** `create_app()` in `app.py` — creates app, registers blueprints, error handlers, Jinja2 globals
-- **DB connection:** `db.get_db()` — request-scoped via Flask `g`, WAL mode, foreign keys ON, busy timeout 5s
-- **Shared services:** `services/standings.py` — used by main, teams, and playoffs blueprints
-- **Thin routes:** Routes call service functions and pass results to templates
-- **Component macros:** Reusable Jinja2 macros in `templates/components/` — imported with `{% from %}` syntax
+| Table | Key columns / gotchas |
+|-------|----------------------|
+| `teams` | `short_name` (not `short`), `name`, `full_name`, `owner`, `color_primary`, `logo_file` |
+| `players` | `name`, `position`, `bats_throws` (not separate), `role` (lineup/bench/rotation/bullpen), `bullpen_role`, `lineup_order`, `is_drafted` |
+| `draft_picks` | 24 picks (3 rounds x 8 teams) linking to player IDs |
+| `schedule` | `game_num` (not `game_number`), `week_num`, `phase`, `series_game` |
+| `games` | score, hits, errors, W/L/S pitcher IDs, `home_linescore`/`away_linescore` |
+| `player_attributes` | power, contact, speed, pitch ratings. Pitches: fastball, slider, curveball, sinker, changeup, splitter, screwball, cutter, curveball_dirt |
+| `batting_stats` | Per-game: AB, R, H, doubles, triples, HR, RBI, BB, SO, SB |
+| `pitching_stats` | Per-game: `IP_outs` (total outs, not innings — use `format_ip()`), H, R, ER, BB, SO, HR_allowed, W, L, SV, pitches |
+| `analysts` | 3 commentator personalities with favorite/hated teams |
+| `analyst_tweets` | Game/weekly commentary (week_num for weekly) |
+| `analyst_game_picks` | Per-game winner predictions: `analyst_id`, `schedule_id`, `picked_team_id`, `week_num`. UNIQUE(analyst_id, schedule_id) |
+| `weekly_awards` | POTW, Power Rankings (JSON), `game_of_week_id` per week |
 
 ## Domain Rules
 
-- **8 teams**, split between two owners: Ernesto (GRA, SSP, PRI, LTU) and Junior (SCU, VCL, IND, CAV)
+- **8 teams**: Ernesto (GRA, SSP, PRI, LTU) / Junior (SCU, VCL, IND, CAV)
 - **Regular season:** 96 games (each team plays 24 — round-robin)
 - **Playoffs:** Top 4 advance. Best-of-5 semis and finals
-- **Draft:** 3 rounds, 8 picks each (24 total). Players marked `is_drafted=1`
-- **Team short names** are 3-letter codes used in URLs: `/team/GRA`, `/team/IND`, etc.
-
-## Running
-
-```bash
-pip install flask openpyxl
-python app.py         # Runs on http://localhost:5000
-```
-
-## Schema Reference
-
-`schema.sql` contains the full DDL for all tables. It is for reference only — do NOT run it against a populated database (it drops all tables). The live database is `torneo.db`; keep a backup.
+- **Draft:** 3 rounds, 8 picks each. Players marked `is_drafted=1`
+- **Team short names** are 3-letter codes used in URLs: `/team/GRA`, etc.
 
 ## Game Data Entry Workflow
 
-Games are entered from MVP Baseball 2005 box score screenshots stored in `Games/game{N}/`.
+Games are entered from MVP Baseball 2005 box score screenshots in `Games/game{N}/`.
 
 ### Files per game folder
 - **6 PNG screenshots** (timestamped, chronological order)
 - **lanzamientos.txt** — pitch counts per pitcher, grouped by team
 
-### Screenshot order (always 6, in this sequence)
+### Screenshot order (always 6)
 | # | Content |
 |---|---------|
-| 1 | **Away team batting** (top half: 5-6 players) + linescore header |
-| 2 | **Away team batting** (remaining players + totals + extras: 2B, 3B, HR, IMP, SH, SB, E) |
-| 3 | **Home team batting** (top half) |
-| 4 | **Home team batting** (remaining + totals + extras) |
-| 5 | **Away team pitching** |
-| 6 | **Home team pitching** |
+| 1 | **Away batting** (top half: 5-6 players) + linescore header |
+| 2 | **Away batting** (remaining + totals + extras: 2B, 3B, HR, IMP, SH, SB, E) |
+| 3 | **Home batting** (top half) |
+| 4 | **Home batting** (remaining + totals + extras) |
+| 5 | **Away pitching** |
+| 6 | **Home pitching** |
 
 ### MVP 2005 column mappings
 
-**Batting (Spanish → DB):**
-| UI Column | Meaning | DB Column |
-|-----------|---------|-----------|
-| VB | Veces al Bate | AB |
-| C | Carreras | R |
-| H | Hits | H |
-| IMP | Impulsadas | RBI |
-| BB | Bases por Bolas | BB |
-| SO | Ponches | SO |
-| AVE | Average (this game only) | — |
+**Batting (Spanish -> DB):**
+VB=AB, C=R, H=H, IMP=RBI, BB=BB, SO=SO, AVE=H/AB this game (verification only)
 
-Extra-base hits appear in the summary section of screenshots 2 & 4:
-- `2B:` → doubles | `3B:` → triples | `HR:` → home runs
-- `IMP:` → RBI attribution (player names + count)
-- `SH:` → sacrifice hits (not stored in DB)
-- `Corrido de Base:` → SB (stolen bases)
-- `Fildeo: E:` → errors (not per-player in DB)
+Extra-base hits in summary (screenshots 2 & 4): `2B:`, `3B:`, `HR:` (player names), `IMP:` (RBI attribution), `Corrido de Base:` (SB), `Fildeo: E:` (errors)
 
-**Pitching (Spanish → DB):**
-| UI Column | Meaning | DB Column |
-|-----------|---------|-----------|
-| INN | Innings Pitched | IP_outs (convert: `5.1` → 16 outs) |
-| H | Hits | H |
-| C | Carreras | R |
-| CL | Carreras Limpias | ER |
-| BB | Bases por Bolas | BB |
-| SO | Ponches | SO |
-| HR | Home Runs | HR_allowed |
-| PCL | ERA (this game only) | — |
+**Pitching (Spanish -> DB):**
+INN=IP_outs (convert `5.1` -> 16 outs), H=H, C=R, CL=ER, BB=BB, SO=SO, HR=HR_allowed, PCL=ERA (skip)
 
 W/L/S shown as `(W)`, `(L)`, `(S)` next to pitcher name.
 
-### lanzamientos.txt format
-
-```
-TEAM_SHORT
-PitcherLastName pitchCount
-PitcherLastName pitchCount
-
-TEAM_SHORT
-PitcherLastName pitchCount
-```
-
 ### How to enter games — use `insert_game()`!
 
-**Always use `services/game_import.py :: insert_game()`** — never raw SQL. It resolves player names to IDs, validates totals, and supports upsert.
+**Always use `services/game_import.py :: insert_game()`** — never raw SQL. It resolves player names, validates totals via `validate_game()`, and supports upsert.
 
 ```python
 from services.game_import import insert_game
 
 insert_game(
     schedule_id=5,
-    home_runs=0, away_runs=2,
-    home_hits=4, away_hits=4,
+    home_runs=0, away_runs=2, home_hits=4, away_hits=4,
     home_errors=0, away_errors=0,
     wp=("A. Mora", "CAV"), lp=("C. Licea", "GRA"), sv=("P. Echemendia", "CAV"),
     batting=[
@@ -272,105 +159,96 @@ insert_game(
 )
 ```
 
-### Optimal parsing order (read all 6 screenshots, then parse in this order)
+### Cross-validation system
 
-Read all 6 screenshots + lanzamientos.txt in parallel. Then parse in this order to minimize ambiguity:
+`insert_game()` calls `validate_game()` after saving and **raises `ValueError`** if any check fails. This catches pixel misreads before bad data is silently accepted.
 
-1. **Screenshots 2 & 4 first** (batting totals + extras) — gives you hard constraints:
-   - Total AB, R, H, RBI, BB, SO per team
-   - Exactly who had 2B, 3B, HR (from extras list)
-   - Exactly who drove in runs (IMP list with counts)
-   - Linescore from header
-2. **Screenshots 5 & 6 next** (pitching) — fewer rows, clearer numbers:
-   - Pitching H/R/BB/SO must equal opposing batting totals (second cross-check)
-   - W/L/S markers identify game pitchers
-   - IP values confirm game length
-3. **Screenshots 1 & 3 last** (individual batting) — now heavily constrained:
-   - H per player: already known from AVE column (AVE = H/AB, this game only)
-   - 2B/3B/HR: already assigned from extras
-   - RBI: already assigned from IMP list
+**7 automated cross-checks:**
+1. Batting R/H totals match game header values
+2. Pitching H/R/BB/SO must equal opposing team's batting totals
+3. Linescore sums match total runs
+4. IP outs sufficient (>= 27, or >= 24 for visiting pitchers when home team wins)
+5. Extra-base hits (2B+3B+HR) <= total hits per player
+6. ER <= R for every pitcher
+7. Exactly 1 W, 1 L, at most 1 SV
+
+### Optimal parsing order
+
+Read all 6 screenshots + lanzamientos.txt in parallel, then parse:
+
+1. **Screenshots 2 & 4 first** (batting totals + extras) — hard constraints: total AB/R/H/RBI/BB/SO, who had 2B/3B/HR, who drove in runs, linescore
+2. **Screenshots 5 & 6 next** (pitching) — fewer rows, clearer numbers. H/R/BB/SO cross-check against opposing batting
+3. **Screenshots 1 & 3 last** (individual batting) — heavily constrained by now:
+   - H per player from AVE column (AVE = H/AB, this game only)
+   - 2B/3B/HR already assigned from extras
+   - RBI already assigned from IMP list
    - Only R, BB, SO remain ambiguous — but totals + pitching constrain them
-   - When a pixel is ambiguous (0 vs 1?), there's usually only one valid option left
-
-### Cross-checking rules
-1. **AVE column = hits/AB for THIS GAME only** (not cumulative). Use it to confirm H per player.
-2. **Totals line** (screenshot 2 & 4): verify AB, R, H, RBI, BB, SO sums.
-3. **Extra-base summary** tells you exactly who had 2B/3B/HR — distribute from there.
-4. **Pitching H/R/SO totals must match opposing batting totals.**
-5. **Extra-inning games**: linescore may scroll, hiding early innings. Compute missing innings from total runs minus visible innings.
 
 ### Common pitfalls
-- Extra-inning games: linescore scrolls right, innings 1-2 may be hidden. Ask user if split matters.
-- `IP_outs` conversion: `5.1` IP = 16 outs (not 5.1 * 3). Formula: `int(IP) * 3 + decimal_part`.
-- Player names in screenshots use `F. LastName` format — must match `players.name` exactly.
-- Pitches from lanzamientos.txt → `pitches` column in `pitching_stats`.
+- Extra-inning games: linescore scrolls right, early innings may be hidden
+- `IP_outs` conversion: `5.1` IP = 16 outs. Formula: `int(IP) * 3 + decimal_part`
+- Player names use `F. LastName` format — must match `players.name` exactly
+- Pitches from lanzamientos.txt -> `pitches` column in `pitching_stats`
+
+### lanzamientos.txt format
+
+```
+TEAM_SHORT
+PitcherLastName pitchCount
+
+TEAM_SHORT
+PitcherLastName pitchCount
+```
+
+## Weekly Content Workflow
+
+When generating content for week N (after week N games are played):
+
+1. Run `python weekly.py N` — prints summary + upcoming week N+1 games with rankings
+2. Use output to generate: POTW, power rankings, analyst tweets
+3. Save via `save_weekly_awards()`, `save_weekly_tweets()`
+4. **Generate predictions for week N+1:**
+   - `generate_game_picks(N+1)` — uses week N power rankings + analyst personality
+   - `save_game_picks(N+1, picks)` — stores in `analyst_game_picks`
+   - `pick_game_of_week(N+1)` — closest power ranking matchup
+   - Save game_of_week_id via `save_weekly_awards(N+1, ..., game_of_week_id=gotw)`
+5. Predictions show on `/schedule` — analyst avatars next to predicted winner, gold badge for Game of the Week
+
+### Analyst prediction logic
+- Default: pick higher-ranked team (from previous week's power rankings)
+- Favorite team playing → always pick favorite
+- Hated team playing (no favorite conflict) → always pick opponent
 
 ## Player Attributes Entry Workflow
 
-Attributes are entered from MVP 2005 roster screenshots, one team at a time.
+Attributes are entered from MVP 2005 roster screenshots. **All 8 teams are entered.**
 
 ### User workflow
-1. User tells you the team (e.g. "SSP")
-2. User takes screenshots of each player in `C:\Users\ernes\Videos\Captures`
-3. Run `python scripts/crop_attributes.py` — saves cropped copies to `Captures/cropped/`
-4. Read cropped images, parse attributes, insert with `bulk_upsert()`
-5. User deletes screenshots and repeats for next team
+1. User specifies team, takes screenshots in `C:\Users\ernes\Videos\Captures`
+2. Run `python scripts/crop_attributes.py` — saves crops to `Captures/cropped/`
+3. Read cropped images, parse attributes, insert with `bulk_upsert()`
 
 ### Screenshot layout
 
-**Batter screen ("Orden Al Bate"):**
-```
-POS - Full Name - #Number
-vs ZUR   Pod XX   vs DER   Pod XX
-         Con XX            Con XX
-         Vel XX            Vel XX
-```
-- vs ZUR = vs Left → power_vs_l, contact_vs_l
-- vs DER = vs Right → power_vs_r, contact_vs_r
-- Vel = speed (same both sides)
+**Batter ("Orden Al Bate"):** `POS - Full Name - #Number`, then vs ZUR (power_vs_l, contact_vs_l) / vs DER (power_vs_r, contact_vs_r) / Vel (speed)
 
-**Pitcher screen ("Rotacion de Pitcheo"):**
-```
-POS - Full Name - #Number
-ESTAMINA  [pitch1] XX  [pitch2] XX
-XX        [pitch3] XX  [pitch4] XX
-          [pitch5] XX
-```
-Pitch type abbreviations → DB columns:
-- R4C → fastball | SLD → slider | CRV → curveball
-- SNK → sinker | TND → changeup | SPL → splitter | SCR → screwball
-- CBB → curveball_dirt (curveball in the dirt / buried curveball)
-- RCT → cutter (Recta Cortada)
-- ESTAMINA → stamina
+**Pitcher ("Rotacion de Pitcheo"):** `POS - Full Name - #Number`, ESTAMINA (stamina), then pitch types:
+R4C=fastball, SLD=slider, CRV=curveball, SNK=sinker, TND=changeup, SPL=splitter, SCR=screwball, CBB=curveball_dirt, RCT=cutter
 
 ### How to insert — use `bulk_upsert()`!
 
-**Always use `services/attributes_import.py :: bulk_upsert()`** — it resolves player names, handles insert/update.
+**Always use `services/attributes_import.py :: bulk_upsert()`** — resolves names, handles insert/update.
 
 ```python
 from services.attributes_import import bulk_upsert
-
-batters = [
+bulk_upsert("SSP", [
     {"name": "Y. Mendoza", "power_vs_l": 54, "contact_vs_l": 73, "power_vs_r": 70, "contact_vs_r": 72, "speed": 75},
-    # ... all batters
-]
-pitchers = [
     {"name": "D. Hinojosa", "stamina": 81, "fastball": 81, "sinker": 72, "curveball": 77, "slider": 72},
-    # ... all pitchers
-]
-bulk_upsert("SSP", batters + pitchers)
+])
 ```
 
-### Reading order for speed
-1. Read ALL cropped images in parallel (batch of 8)
-2. Parse batter screens: name → power_vs_l, contact_vs_l, power_vs_r, contact_vs_r, speed
-3. Parse pitcher screens: name → stamina + pitch type values
-4. Build single `bulk_upsert()` call with all entries
-5. If a player in the screenshot isn't in the DB, add them to `players` first. This happens with bench/bullpen players not in the original roster (e.g., V. Baro on CAV, J. Guerra on PRI, Y. Ulacia on VCL). Insert with: `INSERT INTO players (name, team_id, position, role, bullpen_role) VALUES (?, ?, ?, ?, ?)`
-6. **Extract full names** from screenshot headers (`POS - Full Name - #Number`) and update `players.full_name`. Fix any wrong existing full_names.
-7. **Duplicate names on same team** (e.g., two Y. Perez on VCL — one 2B, one SP): `bulk_upsert()` matches by name and returns the first hit. Handle these with direct `upsert_attributes(player_id, attrs)` calls using the specific player ID.
-
-### Player Database UI
-- Route: `/jugadores` (endpoint: `players.all_players`)
-- Shows all players with attributes, sortable columns, filterable by team/role/owner
-- Attribute values color-coded: green (≥85), gold (≥70)
+### Notes
+- If a player isn't in DB, add to `players` first: `INSERT INTO players (name, team_id, position, role, bullpen_role) VALUES (?, ?, ?, ?, ?)`
+- Extract full names from screenshot headers and update `players.full_name`
+- **Duplicate names on same team** (e.g., two Y. Perez on VCL): use `upsert_attributes(player_id, attrs)` with specific player ID
+- `/jugadores` page shows all players with attributes, sortable/filterable, color-coded (green >= 85, gold >= 70)

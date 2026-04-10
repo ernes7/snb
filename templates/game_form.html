@@ -1,25 +1,26 @@
 {% extends "base.html" %}
+{% from 'components/pitcher_select.html' import pitcher_select %}
 {% block title %}{{ 'Editar' if game else 'Registrar' }} Juego #{{ sched.game_num }}{% endblock %}
 {% block content %}
 <h1>
     Juego #{{ sched.game_num }}:
-    <span style="color: {{ sched.home_color }}">{{ sched.home_name }}</span>
+    <span class="team-color" style="--team-color: {{ sched.home_color }}">{{ sched.home_name }}</span>
     vs
-    <span style="color: {{ sched.away_color }}">{{ sched.away_name }}</span>
+    <span class="team-color" style="--team-color: {{ sched.away_color }}">{{ sched.away_name }}</span>
 </h1>
 
 <form method="POST" action="{{ url_for('games.game_save') }}">
     <input type="hidden" name="schedule_id" value="{{ sched.id }}">
 
     <div class="card">
-        <h2 style="margin-top:0">Marcador</h2>
+        <h2 class="mt-0">Marcador</h2>
         <div class="form-grid">
             <div class="field">
-                <label>Carreras <strong style="color: {{ sched.home_color }}">{{ sched.home_short }}</strong> (Local)</label>
+                <label>Carreras <strong class="team-color" style="--team-color: {{ sched.home_color }}">{{ sched.home_short }}</strong> (Local)</label>
                 <input type="number" name="home_runs" id="home_runs" min="0" value="{{ game.home_runs if game else '' }}" required>
             </div>
             <div class="field">
-                <label>Carreras <strong style="color: {{ sched.away_color }}">{{ sched.away_short }}</strong> (Visitante)</label>
+                <label>Carreras <strong class="team-color" style="--team-color: {{ sched.away_color }}">{{ sched.away_short }}</strong> (Visitante)</label>
                 <input type="number" name="away_runs" id="away_runs" min="0" value="{{ game.away_runs if game else '' }}" required>
             </div>
             <div class="field">
@@ -42,57 +43,12 @@
     </div>
 
     <div class="card">
-        <h2 style="margin-top:0">Pitchers</h2>
-        <div id="pitcher-hint" style="display:none; margin-bottom: 0.8rem; padding: 0.5rem 0.8rem; background: var(--bg-alt); border-radius: 6px; font-size: 0.82rem; color: var(--muted);"></div>
+        <h2 class="mt-0">Pitchers</h2>
+        <div class="pitcher-hint" id="pitcher-hint"></div>
         <div class="form-row-3">
-            <div class="field">
-                <label>Pitcher Ganador</label>
-                <select name="winning_pitcher_id" id="winning_pitcher_id">
-                    <option value="">— Seleccionar —</option>
-                    <optgroup label="{{ sched.home_name }}">
-                        {% for p in home_pitchers %}
-                        <option value="{{ p.id }}" data-team="home" {{ 'selected' if game and game.winning_pitcher_id == p.id else '' }}>{{ p.name }}</option>
-                        {% endfor %}
-                    </optgroup>
-                    <optgroup label="{{ sched.away_name }}">
-                        {% for p in away_pitchers %}
-                        <option value="{{ p.id }}" data-team="away" {{ 'selected' if game and game.winning_pitcher_id == p.id else '' }}>{{ p.name }}</option>
-                        {% endfor %}
-                    </optgroup>
-                </select>
-            </div>
-            <div class="field">
-                <label>Pitcher Perdedor</label>
-                <select name="losing_pitcher_id" id="losing_pitcher_id">
-                    <option value="">— Seleccionar —</option>
-                    <optgroup label="{{ sched.home_name }}">
-                        {% for p in home_pitchers %}
-                        <option value="{{ p.id }}" data-team="home" {{ 'selected' if game and game.losing_pitcher_id == p.id else '' }}>{{ p.name }}</option>
-                        {% endfor %}
-                    </optgroup>
-                    <optgroup label="{{ sched.away_name }}">
-                        {% for p in away_pitchers %}
-                        <option value="{{ p.id }}" data-team="away" {{ 'selected' if game and game.losing_pitcher_id == p.id else '' }}>{{ p.name }}</option>
-                        {% endfor %}
-                    </optgroup>
-                </select>
-            </div>
-            <div class="field">
-                <label>Salvamento</label>
-                <select name="save_pitcher_id" id="save_pitcher_id">
-                    <option value="">— Ninguno —</option>
-                    <optgroup label="{{ sched.home_name }}">
-                        {% for p in home_pitchers %}
-                        <option value="{{ p.id }}" data-team="home" {{ 'selected' if game and game.save_pitcher_id == p.id else '' }}>{{ p.name }}</option>
-                        {% endfor %}
-                    </optgroup>
-                    <optgroup label="{{ sched.away_name }}">
-                        {% for p in away_pitchers %}
-                        <option value="{{ p.id }}" data-team="away" {{ 'selected' if game and game.save_pitcher_id == p.id else '' }}>{{ p.name }}</option>
-                        {% endfor %}
-                    </optgroup>
-                </select>
-            </div>
+            {{ pitcher_select('winning_pitcher_id', 'winning_pitcher_id', 'Pitcher Ganador', sched.home_name, sched.away_name, home_pitchers, away_pitchers, game.winning_pitcher_id if game else None) }}
+            {{ pitcher_select('losing_pitcher_id', 'losing_pitcher_id', 'Pitcher Perdedor', sched.home_name, sched.away_name, home_pitchers, away_pitchers, game.losing_pitcher_id if game else None) }}
+            {{ pitcher_select('save_pitcher_id', 'save_pitcher_id', 'Salvamento', sched.home_name, sched.away_name, home_pitchers, away_pitchers, game.save_pitcher_id if game else None, empty_label='— Ninguno —') }}
         </div>
     </div>
 
@@ -109,23 +65,23 @@
         </div>
     </div>
 
-    <button type="submit" class="btn btn-play" style="margin-top:1rem; padding: 0.6rem 2rem; font-size: 1rem;">
+    <button type="submit" class="btn btn-play btn-lg mt-3">
         {{ 'Actualizar' if game else 'Guardar' }} Resultado
     </button>
 </form>
 
 <script>
 (function() {
-    const homeRuns = document.getElementById('home_runs');
-    const awayRuns = document.getElementById('away_runs');
-    const wpSelect = document.getElementById('winning_pitcher_id');
-    const lpSelect = document.getElementById('losing_pitcher_id');
-    const svSelect = document.getElementById('save_pitcher_id');
-    const hint = document.getElementById('pitcher-hint');
+    var homeRuns = document.getElementById('home_runs');
+    var awayRuns = document.getElementById('away_runs');
+    var wpSelect = document.getElementById('winning_pitcher_id');
+    var lpSelect = document.getElementById('losing_pitcher_id');
+    var svSelect = document.getElementById('save_pitcher_id');
+    var hint = document.getElementById('pitcher-hint');
 
     function filterPitchers() {
-        const hr = parseInt(homeRuns.value);
-        const ar = parseInt(awayRuns.value);
+        var hr = parseInt(homeRuns.value);
+        var ar = parseInt(awayRuns.value);
 
         if (isNaN(hr) || isNaN(ar) || hr === ar) {
             setAllEnabled(wpSelect);
@@ -135,10 +91,10 @@
             return;
         }
 
-        const winTeam = hr > ar ? 'home' : 'away';
-        const loseTeam = hr > ar ? 'away' : 'home';
-        const winName = hr > ar ? '{{ sched.home_name }}' : '{{ sched.away_name }}';
-        const loseName = hr > ar ? '{{ sched.away_name }}' : '{{ sched.home_name }}';
+        var winTeam = hr > ar ? 'home' : 'away';
+        var loseTeam = hr > ar ? 'away' : 'home';
+        var winName = hr > ar ? '{{ sched.home_name }}' : '{{ sched.away_name }}';
+        var loseName = hr > ar ? '{{ sched.away_name }}' : '{{ sched.home_name }}';
 
         filterSelect(wpSelect, winTeam);
         filterSelect(lpSelect, loseTeam);
@@ -149,9 +105,8 @@
     }
 
     function filterSelect(select, allowedTeam) {
-        const options = select.querySelectorAll('option[data-team]');
-        let selectedDisabled = false;
-
+        var options = select.querySelectorAll('option[data-team]');
+        var selectedDisabled = false;
         options.forEach(function(opt) {
             if (opt.dataset.team === allowedTeam) {
                 opt.disabled = false;
@@ -162,7 +117,6 @@
                 if (opt.selected) selectedDisabled = true;
             }
         });
-
         if (selectedDisabled) select.value = '';
     }
 
@@ -175,8 +129,6 @@
 
     homeRuns.addEventListener('input', filterPitchers);
     awayRuns.addEventListener('input', filterPitchers);
-
-    // Run on load for edit mode
     filterPitchers();
 })();
 </script>

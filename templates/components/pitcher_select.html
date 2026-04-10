@@ -1,0 +1,19 @@
+{# Pitcher select dropdown with home/away optgroups #}
+{% macro pitcher_select(name, id, label, home_name, away_name, home_pitchers, away_pitchers, selected_id=None, empty_label='— Seleccionar —') %}
+<div class="field">
+    <label>{{ label }}</label>
+    <select name="{{ name }}" id="{{ id }}">
+        <option value="">{{ empty_label }}</option>
+        <optgroup label="{{ home_name }}">
+            {% for p in home_pitchers %}
+            <option value="{{ p.id }}" data-team="home" {{ 'selected' if selected_id and selected_id == p.id else '' }}>{{ p.name }}</option>
+            {% endfor %}
+        </optgroup>
+        <optgroup label="{{ away_name }}">
+            {% for p in away_pitchers %}
+            <option value="{{ p.id }}" data-team="away" {{ 'selected' if selected_id and selected_id == p.id else '' }}>{{ p.name }}</option>
+            {% endfor %}
+        </optgroup>
+    </select>
+</div>
+{% endmacro %}
