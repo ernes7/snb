@@ -24,6 +24,7 @@ def upsert_attributes(player_id: int, attrs: dict[str, Any]) -> None:
         "power_vs_l", "contact_vs_l", "power_vs_r", "contact_vs_r",
         "speed", "stamina", "fastball", "slider", "curveball",
         "sinker", "changeup", "splitter", "screwball",
+        "cutter", "curveball_dirt",
     ]
 
     if existing:
@@ -36,8 +37,8 @@ def upsert_attributes(player_id: int, attrs: dict[str, Any]) -> None:
             "INSERT INTO player_attributes"
             " (player_id, power_vs_l, contact_vs_l, power_vs_r, contact_vs_r,"
             "  speed, stamina, fastball, slider, curveball, sinker,"
-            "  changeup, splitter, screwball)"
-            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "  changeup, splitter, screwball, cutter, curveball_dirt)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (player_id, *[attrs.get(c) for c in cols]),
         )
 

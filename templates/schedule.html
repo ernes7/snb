@@ -44,9 +44,6 @@
                     <span class="sched-pitchers">
                         {{ pitcher_credits(g.wp_name, g.lp_name) }}
                     </span>
-                    <a href="{{ url_for('games.game_new', schedule_id=g.id) }}" class="btn btn-sm btn-edit">Editar</a>
-                {% else %}
-                    <a href="{{ url_for('games.game_new', schedule_id=g.id) }}" class="btn btn-sm btn-play">Jugar</a>
                 {% endif %}
             </div>
             {% if g.home_runs is none %}

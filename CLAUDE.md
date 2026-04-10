@@ -73,6 +73,7 @@ TOrneo/
 ├── services/
 │   ├── standings.py                # get_standings(), get_all_teams() — shared
 │   ├── weekly.py                   # weekly summaries, awards, tweets
+│   ├── power_rankings.py           # compute_power_rankings() — deterministic formula
 │   ├── game_import.py              # insert_game() — complete game entry from box scores
 │   └── attributes_import.py        # bulk_upsert() — player attributes from roster screenshots
 ├── lib/
@@ -140,12 +141,12 @@ TOrneo/
 
 | Table | Purpose |
 |-------|---------|
-| `teams` | 8 teams with rankings, colors, logos, owner (Ernesto/Junior) |
-| `players` | 71 players — role: lineup/bench/rotation/bullpen |
+| `teams` | 8 teams with rankings, colors, logos, owner (Ernesto/Junior). **Key columns:** `short_name` (not `short`), `name`, `full_name`, `owner`, `color_primary`, `logo_file` |
+| `players` | ~75 players — role: lineup/bench/rotation/bullpen. **Key columns:** `name`, `team_id`, `position`, `bats_throws` (not separate `bats`/`throws`), `role`, `bullpen_role`, `lineup_order`, `is_drafted` |
 | `draft_picks` | 24 picks (3 rounds, 8 teams) linking to player IDs |
-| `schedule` | 96 regular + playoff games, phase: regular/semi_a/semi_b/final |
+| `schedule` | 96 regular + playoff games. **Key columns:** `game_num` (not `game_number`), `week_num`, `home_team_id`, `away_team_id`, `phase`, `series_game` |
 | `games` | Results: score, hits, errors, W/L/S pitchers |
-| `player_attributes` | Power, contact, speed, pitch ratings per player |
+| `player_attributes` | Power, contact, speed, pitch ratings per player. Pitch columns: fastball, slider, curveball, sinker, changeup, splitter, screwball, cutter, curveball_dirt |
 | `batting_stats` | Per-game: AB, R, H, 2B, 3B, HR, RBI, BB, SO, SB |
 | `pitching_stats` | Per-game: IP_outs, H, R, ER, BB, SO, HR, W, L, SV |
 | `analysts` | 4 commentator personalities with favorite/hated teams |
@@ -338,6 +339,8 @@ XX        [pitch3] XX  [pitch4] XX
 Pitch type abbreviations → DB columns:
 - R4C → fastball | SLD → slider | CRV → curveball
 - SNK → sinker | TND → changeup | SPL → splitter | SCR → screwball
+- CBB → curveball_dirt (curveball in the dirt / buried curveball)
+- RCT → cutter (Recta Cortada)
 - ESTAMINA → stamina
 
 ### How to insert — use `bulk_upsert()`!
@@ -363,7 +366,9 @@ bulk_upsert("SSP", batters + pitchers)
 2. Parse batter screens: name → power_vs_l, contact_vs_l, power_vs_r, contact_vs_r, speed
 3. Parse pitcher screens: name → stamina + pitch type values
 4. Build single `bulk_upsert()` call with all entries
-5. If a player in the screenshot isn't in the DB, add them to `players` first
+5. If a player in the screenshot isn't in the DB, add them to `players` first. This happens with bench/bullpen players not in the original roster (e.g., V. Baro on CAV, J. Guerra on PRI, Y. Ulacia on VCL). Insert with: `INSERT INTO players (name, team_id, position, role, bullpen_role) VALUES (?, ?, ?, ?, ?)`
+6. **Extract full names** from screenshot headers (`POS - Full Name - #Number`) and update `players.full_name`. Fix any wrong existing full_names.
+7. **Duplicate names on same team** (e.g., two Y. Perez on VCL — one 2B, one SP): `bulk_upsert()` matches by name and returns the first hit. Handle these with direct `upsert_attributes(player_id, attrs)` calls using the specific player ID.
 
 ### Player Database UI
 - Route: `/jugadores` (endpoint: `players.all_players`)

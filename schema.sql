@@ -98,7 +98,9 @@ CREATE TABLE player_attributes (
     sinker INTEGER,
     changeup INTEGER,
     splitter INTEGER,
-    screwball INTEGER
+    screwball INTEGER,
+    cutter INTEGER,
+    curveball_dirt INTEGER
 );
 
 CREATE TABLE analysts (

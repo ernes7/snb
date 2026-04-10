@@ -80,6 +80,8 @@
             <th class="num" data-sort="num" title="Cambio">TND</th>
             <th class="num" data-sort="num" title="Splitter">SPL</th>
             <th class="num" data-sort="num" title="Screwball">SCR</th>
+            <th class="num" data-sort="num" title="Recta Cortada (Cutter)">RCT</th>
+            <th class="num" data-sort="num" title="Curva al Piso">CBB</th>
         </tr>
     </thead>
     <tbody>
@@ -98,6 +100,8 @@
         <td class="num {{ 'attr-high' if p.changeup and p.changeup >= 85 else 'attr-mid' if p.changeup and p.changeup >= 70 else '' }}">{{ p.changeup if p.changeup is not none else '' }}</td>
         <td class="num {{ 'attr-high' if p.splitter and p.splitter >= 85 else 'attr-mid' if p.splitter and p.splitter >= 70 else '' }}">{{ p.splitter if p.splitter is not none else '' }}</td>
         <td class="num {{ 'attr-high' if p.screwball and p.screwball >= 85 else 'attr-mid' if p.screwball and p.screwball >= 70 else '' }}">{{ p.screwball if p.screwball is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.cutter and p.cutter >= 85 else 'attr-mid' if p.cutter and p.cutter >= 70 else '' }}">{{ p.cutter if p.cutter is not none else '' }}</td>
+        <td class="num {{ 'attr-high' if p.curveball_dirt and p.curveball_dirt >= 85 else 'attr-mid' if p.curveball_dirt and p.curveball_dirt >= 70 else '' }}">{{ p.curveball_dirt if p.curveball_dirt is not none else '' }}</td>
     </tr>
     {% endfor %}
     </tbody>

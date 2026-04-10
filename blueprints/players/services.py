@@ -86,6 +86,7 @@ def get_all_players_with_attrs() -> list[sqlite3.Row]:
             pa.power_vs_l, pa.contact_vs_l, pa.power_vs_r, pa.contact_vs_r,
             pa.speed, pa.stamina, pa.fastball, pa.slider, pa.curveball,
             pa.sinker, pa.changeup, pa.splitter, pa.screwball,
+            pa.cutter, pa.curveball_dirt,
             CASE
                 WHEN pa.power_vs_l IS NOT NULL THEN
                     ROUND((pa.power_vs_l + pa.contact_vs_l + pa.power_vs_r + pa.contact_vs_r + pa.speed) / 5.0, 1)
@@ -93,11 +94,13 @@ def get_all_players_with_attrs() -> list[sqlite3.Row]:
                     ROUND((pa.stamina + COALESCE(pa.fastball,0) + COALESCE(pa.slider,0)
                         + COALESCE(pa.curveball,0) + COALESCE(pa.sinker,0)
                         + COALESCE(pa.changeup,0) + COALESCE(pa.splitter,0)
-                        + COALESCE(pa.screwball,0)) * 1.0
+                        + COALESCE(pa.screwball,0) + COALESCE(pa.cutter,0)
+                        + COALESCE(pa.curveball_dirt,0)) * 1.0
                     / (1 + (pa.fastball IS NOT NULL) + (pa.slider IS NOT NULL)
                         + (pa.curveball IS NOT NULL) + (pa.sinker IS NOT NULL)
                         + (pa.changeup IS NOT NULL) + (pa.splitter IS NOT NULL)
-                        + (pa.screwball IS NOT NULL)), 1)
+                        + (pa.screwball IS NOT NULL) + (pa.cutter IS NOT NULL)
+                        + (pa.curveball_dirt IS NOT NULL)), 1)
                 ELSE NULL
             END as overall
         FROM players p

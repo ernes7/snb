@@ -149,6 +149,20 @@ tr:hover { background: #faf6f0; }
 .change-up { color: var(--green); font-weight: 600; }
 .change-down { color: var(--red); font-weight: 600; }
 .change-same { color: var(--muted); }
+.rank-new { color: var(--gold); font-size: 0.7rem; font-weight: 600; }
+
+/* Power ranking component bars */
+.pr-bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden; margin-top: 4px; gap: 1px; }
+.pr-seg { min-width: 2px; }
+.pr-win { background: #2d7a3a; }
+.pr-recent { background: #3aa355; }
+.pr-rd { background: #8b6914; }
+.pr-bat { background: #c47d1a; }
+.pr-pit { background: #2a6496; }
+.pr-sos { background: #7a5090; }
+.pr-score { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+.pr-legend { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 0.5rem; font-size: 0.7rem; color: var(--muted); }
+.pr-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px; vertical-align: middle; }
 
 /* Buttons */
 .btn {
