@@ -11,6 +11,12 @@
 
 <div class="bento">
 
+{% if bat_ops %}
+{{ leaderboard_table('OPS (min. 5 AB)', 'Lideres de OPS', bat_ops,
+    [('AB', 'AB', false), ('OBP', 'OBP', false), ('SLG', 'SLG', false), ('OPS', 'OPS', true)],
+    format_map={"OBP": "%.3f", "SLG": "%.3f", "OPS": "%.3f"}) }}
+{% endif %}
+
 {% if bat_avg %}
 {{ leaderboard_table('Promedio (min. 5 AB)', 'Lideres de promedio de bateo', bat_avg,
     [('AB', 'AB', false), ('H', 'H', false), ('AVG', 'AVG', true)],
@@ -41,6 +47,12 @@
 {{ leaderboard_table('ERA (min. 3 IP)', 'Lideres de ERA', pitch_era,
     [('IP', 'IP_outs', false), ('SO', 'SO', false), ('ERA', 'ERA', true)],
     format_map={"ERA": "%.2f"}) }}
+{% endif %}
+
+{% if pitch_whip %}
+{{ leaderboard_table('WHIP (min. 3 IP)', 'Lideres de WHIP', pitch_whip,
+    [('IP', 'IP_outs', false), ('BB', 'BB', false), ('H', 'H', false), ('WHIP', 'WHIP', true)],
+    format_map={"WHIP": "%.2f"}) }}
 {% endif %}
 
 {% if pitch_so %}

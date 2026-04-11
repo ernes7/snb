@@ -100,7 +100,8 @@ CREATE TABLE player_attributes (
     splitter INTEGER,
     screwball INTEGER,
     cutter INTEGER,
-    curveball_dirt INTEGER
+    curveball_dirt INTEGER,
+    circle_changeup INTEGER
 );
 
 CREATE TABLE analysts (

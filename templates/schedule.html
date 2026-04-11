@@ -62,6 +62,8 @@
                     {{ pitcher_credits(g.wp_name, g.lp_name) }}
                 </span>
             </div>
+            {% else %}
+            <div class="sched-details"></div>
             {% endif %}
         </div>
             {% if g.home_runs is none %}

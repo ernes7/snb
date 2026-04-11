@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import sqlite3
-from typing import Any
 
 from db import get_db
+from lib.stats import BattingLine, PitchingLine
 
 
 def get_team(short_name: str) -> sqlite3.Row | None:
@@ -61,8 +61,8 @@ def get_team_pitch_leaders(team_id: int) -> list[sqlite3.Row]:
     """, (team_id,)).fetchall()
 
 
-def get_team_batting_totals(team_id: int) -> dict[str, Any] | None:
-    """Get aggregate batting totals for a team."""
+def get_team_batting_totals(team_id: int) -> BattingLine | None:
+    """Get aggregate batting line for a team, or None if no plate appearances."""
     row = get_db().execute("""
         SELECT SUM(AB) as AB, SUM(R) as R, SUM(H) as H,
             SUM(doubles) as doubles, SUM(triples) as triples,
@@ -72,13 +72,11 @@ def get_team_batting_totals(team_id: int) -> dict[str, Any] | None:
     """, (team_id,)).fetchone()
     if not row or not row['AB']:
         return None
-    d = dict(row)
-    d['AVG'] = round(d['H'] / d['AB'], 3) if d['AB'] > 0 else 0
-    return d
+    return BattingLine.from_row(row)
 
 
-def get_team_pitching_totals(team_id: int) -> dict[str, Any] | None:
-    """Get aggregate pitching totals for a team."""
+def get_team_pitching_totals(team_id: int) -> PitchingLine | None:
+    """Get aggregate pitching line for a team, or None if no innings pitched."""
     row = get_db().execute("""
         SELECT SUM(IP_outs) as IP_outs, SUM(H) as H, SUM(R) as R,
             SUM(ER) as ER, SUM(BB) as BB, SUM(SO) as SO,
@@ -87,9 +85,7 @@ def get_team_pitching_totals(team_id: int) -> dict[str, Any] | None:
     """, (team_id,)).fetchone()
     if not row or not row['IP_outs']:
         return None
-    d = dict(row)
-    d['ERA'] = round((d['ER'] * 27) / d['IP_outs'], 2) if d['IP_outs'] > 0 else 0
-    return d
+    return PitchingLine.from_row(row)
 
 
 def get_team_errors(team_id: int) -> int:

@@ -3,6 +3,7 @@
    format_map: optional dict of {key: format_string} for special formatting (e.g. {"AVG": "%.3f"})
 #}
 {% from 'components/logo_img.html' import logo_img %}
+{% from 'components/sparkline.html' import sparkline %}
 {% macro leaderboard_table(title, caption, players, stat_cols, format_map={}, panel_class='') %}
 <div class="panel {{ panel_class }}">
     <h2>{{ title }}</h2>
@@ -16,6 +17,7 @@
                 {% for header, key, bold in stat_cols %}
                 <th class="num" scope="col">{{ header }}</th>
                 {% endfor %}
+                <th scope="col" class="spark-col"><span class="sr-only">Tendencia</span></th>
             </tr>
         </thead>
         <tbody>
@@ -36,6 +38,7 @@
                 {% endif %}
             </td>
             {% endfor %}
+            <td class="spark-cell" style="--team-color: {{ p.color_primary }}">{{ sparkline(p.spark if p.spark is defined else []) }}</td>
         </tr>
         {% endfor %}
         </tbody>

@@ -13,4 +13,9 @@ def index() -> str:
     standings = get_standings()
     recent = get_recent_games()
     teams = get_all_teams()
-    return render_template('index.html', standings=standings, recent=recent, teams=teams)
+    games_played = sum(s['wins'] + s['losses'] for s in standings) // 2
+    total_games = 96
+    return render_template(
+        'index.html', standings=standings, recent=recent, teams=teams,
+        games_played=games_played, total_games=total_games,
+    )

@@ -9,6 +9,8 @@ build/
 # Database artifacts
 *.db-wal
 *.db-shm
+*.db.bak*
+*.bak
 
 # Environment
 .env
@@ -29,3 +31,6 @@ Thumbs.db
 
 # Project artifacts
 *.xlsx
+
+# Workspace scratch (audit notes, ad-hoc crops)
+.scratch/

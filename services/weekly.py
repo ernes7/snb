@@ -402,10 +402,15 @@ def save_game_picks(week_num: int, picks: list[dict[str, Any]]) -> None:
 
 
 def pick_game_of_week(week_num: int) -> int | None:
-    """Pick the Game of the Week — closest matchup by power rankings.
+    """Pick the Game of the Week — best combination of quality and closeness.
 
-    Scores each game: lower rank difference = more exciting.
-    Tiebreak: higher combined ranking (both teams are good).
+    Scoring: quality (both teams near top) dominates, closeness is a bonus.
+    A 1-vs-2 matchup beats 7-vs-8 even though both are "close", and a
+    top-team-vs-mid-team beats a close mid-vs-mid matchup.
+
+        closeness_bonus = 8 - abs(h_rank - a_rank)   # 0-7
+        quality_bonus   = 16 - (h_rank + a_rank)     # 0-14
+        score           = quality_bonus * 3 + closeness_bonus
     """
     db = get_db()
     rank_map = _get_rank_map(week_num - 1) if week_num > 1 else {}
@@ -423,17 +428,135 @@ def pick_game_of_week(week_num: int) -> int | None:
         return None
 
     best_id = None
-    best_score = (-1, -1)
+    best_score = -1
     for g in games:
         h_rank = rank_map.get(g["home_team_id"], 5)
         a_rank = rank_map.get(g["away_team_id"], 5)
-        closeness = 8 - abs(h_rank - a_rank)  # closer = higher
-        quality = 16 - (h_rank + a_rank)  # both top teams = higher
-        score = (closeness, quality)
+        closeness_bonus = 8 - abs(h_rank - a_rank)
+        quality_bonus = 16 - (h_rank + a_rank)
+        score = quality_bonus * 3 + closeness_bonus
         if score > best_score:
             best_score = score
             best_id = g["schedule_id"]
     return best_id
+
+
+def week_completion_status(week_num: int) -> dict[str, Any]:
+    """Return how many games in a week have been played and box scored.
+
+    A game counts as "played" when a row exists in games with both scores.
+    A game counts as "boxscored" when it also has batting_stats entries.
+    """
+    db = get_db()
+    total = db.execute(
+        "SELECT COUNT(*) FROM schedule WHERE phase='regular' AND week_num=?",
+        (week_num,),
+    ).fetchone()[0]
+    played = db.execute("""
+        SELECT COUNT(*) FROM games g
+        JOIN schedule s ON g.schedule_id = s.id
+        WHERE s.phase='regular' AND s.week_num=?
+          AND g.home_runs IS NOT NULL AND g.away_runs IS NOT NULL
+    """, (week_num,)).fetchone()[0]
+    boxscored = db.execute("""
+        SELECT COUNT(DISTINCT g.id) FROM games g
+        JOIN schedule s ON g.schedule_id = s.id
+        JOIN batting_stats bs ON bs.game_id = g.id
+        WHERE s.phase='regular' AND s.week_num=?
+    """, (week_num,)).fetchone()[0]
+    return {"total": total, "played": played, "boxscored": boxscored}
+
+
+def can_auto_generate(week_num: int) -> tuple[bool, str]:
+    """Check if auto-generation is allowed for the given target week.
+
+    Guards:
+      1. The previous week (week_num - 1) must have all games fully box scored.
+      2. The target week (week_num) must have zero games played.
+
+    Returns (allowed, reason_if_denied).
+    """
+    if week_num < 2:
+        return False, "La primera semana no tiene semana previa para rankings."
+
+    prev = week_completion_status(week_num - 1)
+    if prev["total"] == 0:
+        return False, f"La semana {week_num - 1} no existe."
+    if prev["boxscored"] < prev["total"]:
+        return False, (
+            f"La semana {week_num - 1} aun no esta completa "
+            f"({prev['boxscored']}/{prev['total']} juegos con box score)."
+        )
+
+    curr = week_completion_status(week_num)
+    if curr["total"] == 0:
+        return False, f"La semana {week_num} no existe."
+    if curr["played"] > 0:
+        return False, (
+            f"La semana {week_num} ya tiene juegos jugados "
+            f"({curr['played']}/{curr['total']}); no se puede regenerar."
+        )
+
+    return True, ""
+
+
+def auto_generate_week(week_num: int) -> dict[str, Any]:
+    """Auto-generate deterministic weekly content for `week_num`.
+
+    Runs the three pure-logic steps that do not require Claude:
+      1. Compute power rankings using data through week_num - 1
+         and upsert into weekly_awards[week_num - 1] (preserving any
+         POTW/summary/game_of_week_id already set).
+      2. Generate and save analyst game picks for week_num.
+      3. Pick the Game of the Week for week_num and store it in
+         weekly_awards[week_num].game_of_week_id.
+
+    Note: per-team ranking comments and POTW summary remain blank —
+    those are Claude's creative contribution, filled in later.
+
+    Raises ValueError if guards fail. Returns a summary dict.
+    """
+    from services.power_rankings import compute_power_rankings
+
+    allowed, reason = can_auto_generate(week_num)
+    if not allowed:
+        raise ValueError(reason)
+
+    db = get_db()
+
+    # 1. Rankings for week_num - 1
+    prev_week = week_num - 1
+    rankings = compute_power_rankings(prev_week)
+    db.execute("""
+        INSERT INTO weekly_awards (week_num, power_rankings)
+        VALUES (?, ?)
+        ON CONFLICT(week_num) DO UPDATE SET
+            power_rankings = excluded.power_rankings
+    """, (prev_week, json.dumps(rankings)))
+
+    # 2. Game picks for week_num
+    picks = generate_game_picks(week_num)
+    save_game_picks(week_num, picks)
+
+    # 3. Game of the Week for week_num → stored on its own row
+    gotw_id = pick_game_of_week(week_num)
+    if gotw_id is not None:
+        db.execute("""
+            INSERT INTO weekly_awards (week_num, game_of_week_id)
+            VALUES (?, ?)
+            ON CONFLICT(week_num) DO UPDATE SET
+                game_of_week_id = excluded.game_of_week_id
+        """, (week_num, gotw_id))
+
+    db.commit()
+
+    return {
+        "week_num": week_num,
+        "prev_week": prev_week,
+        "rankings_count": len(rankings),
+        "picks_count": len(picks),
+        "game_of_week_id": gotw_id,
+    }
 
 
 def save_game_tweets(

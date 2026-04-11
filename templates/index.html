@@ -4,6 +4,16 @@
 {% block title %}Clasificacion - Serie Nacional{% endblock %}
 {% block content %}
 
+<div class="season-progress mb-2">
+    <div class="season-progress-label">
+        <span>Temporada</span>
+        <span class="stat-num">{{ games_played }} <span class="text-muted">/ {{ total_games }}</span></span>
+    </div>
+    <div class="season-progress-track">
+        <div class="season-progress-fill" style="width: {{ (games_played / total_games * 100)|round(1) }}%"></div>
+    </div>
+</div>
+
 <div class="panel mb-2">
     <h2>Clasificacion</h2>
     <table id="standings-table" class="standings stat-table">

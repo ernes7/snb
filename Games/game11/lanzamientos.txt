@@ -1,0 +1,8 @@
+PRI:
+Y. Torres 39
+A. Martinez 14
+
+IND:
+Y. Gonzales 49
+A. Sanchez 50
+

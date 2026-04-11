@@ -1,4 +1,4 @@
-{# Stats display box #}
-{% macro stat_box(value, label) %}
-<div class="stat-box"><span class="val">{{ value }}</span><span class="label">{{ label }}</span></div>
+{# Stats display box. Set animate=False for non-numeric values (IP, G-P records). #}
+{% macro stat_box(value, label, animate=True) %}
+<div class="stat-box">{% if animate %}<span class="val" data-animate="{{ value }}">{{ value }}</span>{% else %}<span class="val">{{ value }}</span>{% endif %}<span class="label">{{ label }}</span></div>
 {% endmacro %}

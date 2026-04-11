@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/empty_state.html' import empty_state %}
+{% block title %}Carrera MVP - Serie Nacional{% endblock %}
+{% block content %}
+<h1>Carrera MVP</h1>
+<p class="text-muted mb-4">Premio Kindelan al mejor bateador y Premio Lazo al mejor lanzador. Puntaje = (OPS&times;100 o (10&minus;ERA)&times;10) + bono triple corona, multiplicado por posici&oacute;n del equipo.</p>
+
+{% if not kindelan and not lazo %}
+{{ empty_state('La carrera aparecera cuando haya suficientes juegos jugados para clasificar bateadores y lanzadores.') }}
+{% endif %}
+
+{% macro bonus_pill(b) %}
+<span class="bonus-pill {% if b.points %}bonus-pill-earned{% endif %}">{{ b.label }}:{% if b.points %}{{ b.points }}{% else %}&mdash;{% endif %}</span>
+{% endmacro %}
+
+<div class="bento">
+
+{% if kindelan %}
+<div class="panel">
+    <h2>Premio Kindelan</h2>
+    <p class="text-muted panel-sub">Mejor bateador &mdash; OPS&times;100 + bono (AVG/HR/RBI) + mult. equipo</p>
+    <table class="leaderboard stat-table mvp-table">
+        <caption class="sr-only">Carrera al Premio Kindelan</caption>
+        <thead>
+            <tr>
+                <th class="num" scope="col">#</th>
+                <th scope="col">Jugador</th>
+                <th class="num" scope="col">OPS</th>
+                <th scope="col">Bono</th>
+                <th class="num" scope="col">Base</th>
+                <th class="num" scope="col">Bono</th>
+                <th class="num" scope="col">Eq.</th>
+                <th class="num" scope="col">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in kindelan %}
+            <tr class="{% if loop.index == 1 %}mvp-leader mvp-gold{% elif loop.index == 2 %}mvp-silver{% elif loop.index == 3 %}mvp-bronze{% endif %}">
+                <td class="num mvp-rank">{{ loop.index }}</td>
+                <td>
+                    {{ logo_img(e.team_logo, css_class='inline-logo-sm', alt=e.team_short) }}
+                    <a href="{{ url_for('players.player', player_id=e.player_id) }}">{{ e.player_name }}</a>
+                </td>
+                <td class="num">{{ "%.3f"|format(e.key_stat_value) }}</td>
+                <td class="bonus-cell">
+                    {% for b in e.bonuses %}{{ bonus_pill(b) }}{% endfor %}
+                </td>
+                <td class="num">{{ "%.1f"|format(e.base) }}</td>
+                <td class="num">{{ "+" if e.bonus_total }}{{ e.bonus_total }}</td>
+                <td class="num">&times;{{ "%.2f"|format(e.multiplier) }}</td>
+                <td class="num stat-num"><strong>{{ "%.1f"|format(e.final) }}</strong></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if lazo %}
+<div class="panel">
+    <h2>Premio Lazo</h2>
+    <p class="text-muted panel-sub">Mejor lanzador &mdash; (10&minus;ERA)&times;10 + bono (SO/ERA/IP) + mult. equipo</p>
+    <table class="leaderboard stat-table mvp-table">
+        <caption class="sr-only">Carrera al Premio Lazo</caption>
+        <thead>
+            <tr>
+                <th class="num" scope="col">#</th>
+                <th scope="col">Jugador</th>
+                <th class="num" scope="col">ERA</th>
+                <th scope="col">Bono</th>
+                <th class="num" scope="col">Base</th>
+                <th class="num" scope="col">Bono</th>
+                <th class="num" scope="col">Eq.</th>
+                <th class="num" scope="col">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for e in lazo %}
+            <tr class="{% if loop.index == 1 %}mvp-leader mvp-gold{% elif loop.index == 2 %}mvp-silver{% elif loop.index == 3 %}mvp-bronze{% endif %}">
+                <td class="num mvp-rank">{{ loop.index }}</td>
+                <td>
+                    {{ logo_img(e.team_logo, css_class='inline-logo-sm', alt=e.team_short) }}
+                    <a href="{{ url_for('players.player', player_id=e.player_id) }}">{{ e.player_name }}</a>
+                </td>
+                <td class="num">{{ "%.2f"|format(e.key_stat_value) }}</td>
+                <td class="bonus-cell">
+                    {% for b in e.bonuses %}{{ bonus_pill(b) }}{% endfor %}
+                </td>
+                <td class="num">{{ "%.1f"|format(e.base) }}</td>
+                <td class="num">{{ "+" if e.bonus_total }}{{ e.bonus_total }}</td>
+                <td class="num">&times;{{ "%.2f"|format(e.multiplier) }}</td>
+                <td class="num stat-num"><strong>{{ "%.1f"|format(e.final) }}</strong></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+</div>
+{% endblock %}

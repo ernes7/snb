@@ -1,0 +1,312 @@
+/* ============================================
+   Mobile & Accessibility Overrides
+   Loaded after style.css — all rules here
+   are responsive overrides or a11y fixes.
+   ============================================ */
+
+/* ── Reduced motion (all sizes) ── */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ── Table scroll hint (tablet & below) ── */
+@media (max-width: 1023px) {
+    .table-scroll {
+        position: relative;
+    }
+    .table-scroll::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 28px;
+        background: linear-gradient(to right, transparent, var(--cream-50));
+        pointer-events: none;
+        z-index: 6;
+    }
+}
+
+/* ============================================
+   Mobile: max-width 767px
+   ============================================ */
+@media (max-width: 767px) {
+
+    /* -- Font minimum: bump 11px → 12px -- */
+    :root {
+        --text-xs: 0.75rem;
+    }
+
+    /* -- Bottom tab touch targets -- */
+    .bottom-tabs a {
+        padding: 10px 8px;
+    }
+    .bottom-tabs a svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* -- Tighter stat tables -- */
+    .stat-table th,
+    .stats-table th {
+        padding: 4px 6px;
+        font-size: var(--text-xs);
+    }
+    .stat-table td,
+    .stats-table td {
+        padding: 4px 6px;
+        font-size: var(--text-sm);
+    }
+
+    /* -- Box score inputs -- */
+    .box-input {
+        width: 36px !important;
+        padding: 4px 2px !important;
+        font-size: var(--text-xs) !important;
+    }
+
+    /* -- Games strip scroll indicator -- */
+    .games-strip {
+        -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
+        mask-image: linear-gradient(to right, black 85%, transparent 100%);
+    }
+
+    /* -- Games grid: 4-col → 1-col on mobile -- */
+    .games-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+    }
+
+    /* -- Game card score: shrink on mobile -- */
+    .game-card-score {
+        font-size: var(--text-2xl);
+    }
+
+    /* -- Schedule row: card layout for mobile -- */
+    .sched-row {
+        flex-direction: column;
+        padding: var(--space-3);
+        gap: var(--space-2);
+        position: relative;
+    }
+    .sched-row:not(.played) {
+        padding: var(--space-3);
+    }
+    .sched-num {
+        position: absolute;
+        top: var(--space-2);
+        left: var(--space-3);
+        font-size: var(--text-xs);
+    }
+    .gotw-badge {
+        right: 0;
+        font-size: 0.625rem;
+        padding: 1px 8px;
+    }
+
+    /* Matchup: horizontal row — home | score | away */
+    .sched-matchup {
+        flex-direction: row;
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+    }
+
+    /* Teams: compact, centered */
+    .sched-team {
+        flex: 1;
+        justify-content: center;
+        gap: var(--space-1);
+    }
+    .sched-team.home {
+        justify-content: flex-end;
+        text-align: right;
+    }
+    .sched-team.away {
+        justify-content: flex-start;
+        text-align: left;
+    }
+    .sched-logo-wrap {
+        width: 36px;
+        margin: -4px 0;
+    }
+    .sched-logo {
+        width: 36px;
+        height: 36px;
+    }
+    .sched-name {
+        font-size: var(--text-sm);
+    }
+
+    /* Score between teams */
+    .sched-vs {
+        width: auto;
+        padding: 0 var(--space-1);
+    }
+
+    /* Picks: smaller on mobile */
+    .sched-pick {
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Details below matchup */
+    .sched-details {
+        min-width: auto;
+        justify-content: center;
+        width: 100%;
+    }
+    .sched-pitchers {
+        text-align: center;
+        font-size: var(--text-xs);
+    }
+
+    /* Week header: stack on mobile */
+    .week-header {
+        flex-direction: column;
+        gap: var(--space-1);
+        align-items: flex-start;
+    }
+    .week-legend {
+        display: none;
+    }
+
+    /* Game-label allow wrapping */
+    .game-label {
+        white-space: normal;
+        text-align: center;
+        font-size: var(--text-xs);
+    }
+
+    /* Unavailable pitchers stack */
+    .sched-unavailable {
+        flex-direction: column;
+        gap: var(--space-1);
+        padding: 0 var(--space-3);
+        font-size: var(--text-xs);
+    }
+
+    /* Starters compact */
+    .sched-starters {
+        padding: 0 var(--space-3);
+        flex-wrap: wrap;
+        justify-content: center;
+        font-size: var(--text-xs);
+    }
+
+    /* Current week: less padding on mobile */
+    .current-week {
+        padding: var(--space-2);
+    }
+
+    /* -- Tweet replies: reduce indent -- */
+    .tweet-replies {
+        padding-left: var(--space-3);
+    }
+    .tweet-text {
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    /* -- Tweet actions gap -- */
+    .tweet-actions {
+        gap: var(--space-3);
+    }
+
+    /* -- Modal: full-screen on mobile -- */
+    .modal-overlay {
+        padding: 0;
+    }
+    .modal-content {
+        max-width: 100%;
+        max-height: 100%;
+        border-radius: 0;
+        padding: var(--space-3) var(--space-4);
+    }
+
+    /* -- Container tighter padding -- */
+    .container {
+        padding: var(--space-3);
+    }
+
+    /* -- Bento gap reduction -- */
+    .bento,
+    .bento-3 {
+        gap: var(--space-3);
+    }
+
+    /* -- Card padding reduction -- */
+    .card {
+        padding: var(--space-3);
+    }
+}
+
+/* ============================================
+   Small phone: max-width 479px
+   ============================================ */
+@media (max-width: 479px) {
+
+    /* -- Headings -- */
+    h1 { font-size: var(--text-lg); }
+    h2 { font-size: var(--text-base); }
+
+    /* -- Linescore compression -- */
+    .linescore th,
+    .linescore td {
+        min-width: 22px;
+        padding: 2px 3px;
+        font-size: 0.6875rem;
+    }
+    .linescore td:first-child,
+    .linescore th:first-child {
+        min-width: 60px;
+    }
+
+    /* -- Sticky first col truncation -- */
+    .stat-table td:first-child,
+    .stat-table th:first-child {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* -- Box score inputs tighter -- */
+    .box-input {
+        width: 32px !important;
+        font-size: 0.6875rem !important;
+    }
+
+    /* -- Player photo scaling -- */
+    .player-photo-wrapper {
+        width: 72px;
+        height: 90px;
+    }
+
+    /* -- Container minimal padding -- */
+    .container {
+        padding: var(--space-2);
+    }
+
+    /* -- Smaller game cards -- */
+    .game-card {
+        min-width: 180px;
+    }
+
+    /* -- Filter inputs stack better -- */
+    .filter-input {
+        min-width: 0;
+        width: 100%;
+    }
+    .filter-select {
+        min-width: 0;
+        width: 100%;
+    }
+}

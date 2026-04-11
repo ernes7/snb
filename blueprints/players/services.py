@@ -4,6 +4,7 @@ from __future__ import annotations
 import sqlite3
 
 from db import get_db
+from lib.stats import BattingLine, PitchingLine
 
 
 def get_player(player_id: int) -> sqlite3.Row | None:
@@ -49,15 +50,15 @@ def get_batting_log(player_id: int) -> list[sqlite3.Row]:
     """, (player_id,)).fetchall()
 
 
-def get_batting_totals(player_id: int) -> sqlite3.Row | None:
-    """Get accumulated batting totals."""
-    return get_db().execute("""
+def get_batting_totals(player_id: int) -> BattingLine:
+    """Get accumulated batting line (rate stats computed in Python)."""
+    row = get_db().execute("""
         SELECT SUM(AB) as AB, SUM(R) as R, SUM(H) as H, SUM(doubles) as doubles,
             SUM(triples) as triples, SUM(HR) as HR, SUM(RBI) as RBI,
-            SUM(BB) as BB, SUM(SO) as SO, SUM(SB) as SB,
-            CASE WHEN SUM(AB)>0 THEN ROUND(CAST(SUM(H) AS FLOAT)/SUM(AB), 3) ELSE 0 END as AVG
+            SUM(BB) as BB, SUM(SO) as SO, SUM(SB) as SB
         FROM batting_stats WHERE player_id = ?
     """, (player_id,)).fetchone()
+    return BattingLine.from_row(row)
 
 
 def get_pitching_log(player_id: int) -> list[sqlite3.Row]:
@@ -110,12 +111,12 @@ def get_all_players_with_attrs() -> list[sqlite3.Row]:
     """).fetchall()
 
 
-def get_pitching_totals(player_id: int) -> sqlite3.Row | None:
-    """Get accumulated pitching totals."""
-    return get_db().execute("""
+def get_pitching_totals(player_id: int) -> PitchingLine:
+    """Get accumulated pitching line (rate stats computed in Python)."""
+    row = get_db().execute("""
         SELECT SUM(IP_outs) as IP_outs, SUM(H) as H, SUM(R) as R, SUM(ER) as ER,
             SUM(BB) as BB, SUM(SO) as SO, SUM(W) as W, SUM(L) as L, SUM(SV) as SV,
-            SUM(HR_allowed) as HR_allowed,
-            CASE WHEN SUM(IP_outs)>0 THEN ROUND(CAST(SUM(ER)*27 AS FLOAT)/SUM(IP_outs), 2) ELSE 0 END as ERA
+            SUM(HR_allowed) as HR_allowed
         FROM pitching_stats WHERE player_id = ?
     """, (player_id,)).fetchone()
+    return PitchingLine.from_row(row)

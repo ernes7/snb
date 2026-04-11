@@ -31,11 +31,52 @@
 
     /* ── Card stagger-in animation ── */
     document.addEventListener('DOMContentLoaded', function () {
-        var cards = document.querySelectorAll('.card, .game-card, .analyst-chip, .sched-row');
-        cards.forEach(function (card, i) {
-            card.style.animationDelay = (i * 30) + 'ms';
-        });
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (!reduced) {
+            var cards = document.querySelectorAll('.card, .game-card, .analyst-chip, .sched-row');
+            cards.forEach(function (card, i) {
+                card.style.animationDelay = (i * 30) + 'ms';
+            });
+        }
+        animateCounters(reduced);
     });
+
+    /* ── Animated stat counters ──
+       Parses data-animate target, counts up from 0 over ~600ms with ease-out.
+       Preserves decimal count and leading-dot formatting (e.g. ".333" stays ".333"). */
+    function animateCounters(reduced) {
+        var nodes = document.querySelectorAll('[data-animate]');
+        nodes.forEach(function (el) {
+            var raw = el.getAttribute('data-animate').trim();
+            if (!/^-?\.?\d+(\.\d+)?$/.test(raw)) { el.textContent = raw; return; }
+            var target = parseFloat(raw);
+            if (isNaN(target)) { el.textContent = raw; return; }
+            var dotIdx = raw.indexOf('.');
+            var decimals = dotIdx === -1 ? 0 : raw.length - dotIdx - 1;
+            var leadingDot = raw.charAt(0) === '.' || raw.substring(0, 2) === '-.';
+            function fmt(v) {
+                var s = v.toFixed(decimals);
+                if (leadingDot) {
+                    if (s.charAt(0) === '0') s = s.substring(1);
+                    else if (s.substring(0, 2) === '-0') s = '-' + s.substring(2);
+                }
+                return s;
+            }
+            if (reduced || target === 0) { el.textContent = fmt(target); return; }
+            var duration = 600;
+            var start = null;
+            el.textContent = fmt(0);
+            function step(ts) {
+                if (start === null) start = ts;
+                var t = Math.min(1, (ts - start) / duration);
+                var eased = 1 - Math.pow(1 - t, 3);
+                el.textContent = fmt(target * eased);
+                if (t < 1) requestAnimationFrame(step);
+                else el.textContent = fmt(target);
+            }
+            requestAnimationFrame(step);
+        });
+    }
 
     /* ── Reusable sortable table ── */
     window.initSortableTable = function (table) {

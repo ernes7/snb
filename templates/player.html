@@ -50,7 +50,7 @@
 
 {% if attrs %}
 <h2>Atributos</h2>
-<div class="card">
+<div class="card team-scoped" style="--team-color: {{ player.color_primary }}">
     {% if attrs.power_vs_l is not none %}
     <div class="attr-group">
         {{ stat_box(attrs.speed, 'Velocidad') }}
@@ -100,8 +100,11 @@
 {# Batting stats #}
 {% if bat_totals and bat_totals.AB and bat_totals.AB > 0 %}
 <h2>Estadisticas de Bateo</h2>
-<div class="card">
+<div class="card team-scoped" style="--team-color: {{ player.color_primary }}">
     {{ stat_box("%.3f"|format(bat_totals.AVG), 'AVG') }}
+    {{ stat_box("%.3f"|format(bat_totals.OBP), 'OBP') }}
+    {{ stat_box("%.3f"|format(bat_totals.SLG), 'SLG') }}
+    {{ stat_box("%.3f"|format(bat_totals.OPS), 'OPS') }}
     {{ stat_box(bat_totals.AB, 'AB') }}
     {{ stat_box(bat_totals.H, 'H') }}
     {{ stat_box(bat_totals.HR, 'HR') }}
@@ -139,10 +142,10 @@
 {# Pitching stats #}
 {% if pitch_totals and pitch_totals.IP_outs and pitch_totals.IP_outs > 0 %}
 <h2>Estadisticas de Pitcheo</h2>
-<div class="card">
+<div class="card team-scoped" style="--team-color: {{ player.color_primary }}">
     {{ stat_box("%.2f"|format(pitch_totals.ERA), 'ERA') }}
-    {{ stat_box(format_ip(pitch_totals.IP_outs), 'IP') }}
-    {{ stat_box(pitch_totals.W ~ '-' ~ pitch_totals.L, 'G-P') }}
+    {{ stat_box(format_ip(pitch_totals.IP_outs), 'IP', animate=False) }}
+    {{ stat_box(pitch_totals.W ~ '-' ~ pitch_totals.L, 'G-P', animate=False) }}
     {{ stat_box(pitch_totals.SV, 'SV') }}
     {{ stat_box(pitch_totals.SO, 'SO') }}
     {{ stat_box(pitch_totals.H, 'H') }}

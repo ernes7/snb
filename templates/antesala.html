@@ -18,56 +18,73 @@
     <span class="format-tag">Ernesto vs Junior</span>
 </div>
 
-<!-- PREDICTIONS — tabbed -->
-<h2>Predicciones</h2>
-<div class="preds-tabs">
-{% for a in analysts %}
-{% if a.handle in preds_by_analyst %}
-    <button class="pred-tab {% if loop.first %}active{% endif %}"
-            data-handle="{{ a.handle }}"
-            onclick="switchPredTab('{{ a.handle }}')">
-        {% if a.avatar_file %}
-        <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="tab-avatar" alt="{{ a.handle }}">
-        {% else %}
-        <span class="chip-emoji">{{ a.emoji }}</span>
-        {% endif %}
-        {{ a.handle }}
-    </button>
-{% endif %}
-{% endfor %}
-</div>
+<!-- PREDICTIONS — modal trigger -->
+<button class="preds-cta" id="preds-open">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+    Predicciones de Temporada
+    <span class="preds-cta-avatars">
+    {% for a in analysts %}{% if a.avatar_file %}<img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="preds-cta-av" alt="{{ a.handle }}">{% endif %}{% endfor %}
+    </span>
+</button>
 
-{% for a in analysts %}
-{% if a.handle in preds_by_analyst %}
-<div class="pred-panel {% if loop.first %}active{% endif %}" id="panel-{{ a.handle }}">
-    <div class="pred-panel-header">
-        {% if a.avatar_file %}
-        <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="pred-panel-avatar" alt="{{ a.handle }}">
-        {% else %}
-        <span class="chip-emoji">{{ a.emoji }}</span>
+<!-- Predictions modal -->
+<div class="modal-overlay" id="preds-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Predicciones de Temporada</h2>
+            <button class="modal-close" id="preds-close" aria-label="Cerrar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="preds-tabs">
+        {% for a in analysts %}
+        {% if a.handle in preds_by_analyst %}
+            <button class="pred-tab {% if loop.first %}active{% endif %}"
+                    data-handle="{{ a.handle }}"
+                    onclick="switchPredTab('{{ a.handle }}')">
+                {% if a.avatar_file %}
+                <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="tab-avatar" alt="{{ a.handle }}">
+                {% else %}
+                <span class="chip-emoji">{{ a.emoji }}</span>
+                {% endif %}
+                {{ a.handle }}
+            </button>
         {% endif %}
-        <div>
-            <strong class="analyst-name">{{ a.handle }}</strong>
-            <span class="analyst-age">{{ a.edad }} anos</span>
-            <span class="chip-teams">
-                <span class="chip-fav">&#10084; {{ a.fav_name }}</span>
-                <span class="chip-hate">&#128128; {{ a.hate_name }}</span>
-            </span>
+        {% endfor %}
         </div>
-    </div>
-    <p class="analyst-bio">{{ a.descripcion }}</p>
-    <div class="pred-list">
-    {% for p in preds_by_analyst[a.handle] %}
-        <div class="prediction">
-            <div class="pred-num">Prediccion {{ p.pred_num }}</div>
-            <div class="pred-title">{{ p.titulo }}</div>
-            <div class="pred-text">{{ p.texto }}</div>
+        {% for a in analysts %}
+        {% if a.handle in preds_by_analyst %}
+        <div class="pred-panel {% if loop.first %}active{% endif %}" id="panel-{{ a.handle }}">
+            <div class="pred-panel-header">
+                {% if a.avatar_file %}
+                <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}" class="pred-panel-avatar" alt="{{ a.handle }}">
+                {% else %}
+                <span class="chip-emoji">{{ a.emoji }}</span>
+                {% endif %}
+                <div>
+                    <strong class="analyst-name">{{ a.handle }}</strong>
+                    <span class="analyst-age">{{ a.edad }} anos</span>
+                    <span class="chip-teams">
+                        <span class="chip-fav">&#10084; {{ a.fav_name }}</span>
+                        <span class="chip-hate">&#128128; {{ a.hate_name }}</span>
+                    </span>
+                </div>
+            </div>
+            <p class="analyst-bio">{{ a.descripcion }}</p>
+            <div class="pred-list">
+            {% for p in preds_by_analyst[a.handle] %}
+                <div class="prediction">
+                    <div class="pred-num">Prediccion {{ p.pred_num }}</div>
+                    <div class="pred-title">{{ p.titulo }}</div>
+                    <div class="pred-text">{{ p.texto }}</div>
+                </div>
+            {% endfor %}
+            </div>
         </div>
-    {% endfor %}
+        {% endif %}
+        {% endfor %}
     </div>
 </div>
-{% endif %}
-{% endfor %}
 
 <!-- TWEET FEED -->
 <h2>Cobertura en Vivo</h2>
@@ -98,6 +115,30 @@ function switchPredTab(handle) {
     document.querySelector('.pred-tab[data-handle="' + handle + '"]').classList.add('active');
     document.getElementById('panel-' + handle).classList.add('active');
 }
+
+(function() {
+    var overlay = document.getElementById('preds-overlay');
+    var openBtn = document.getElementById('preds-open');
+    var closeBtn = document.getElementById('preds-close');
+
+    function openModal() {
+        overlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    openBtn.addEventListener('click', openModal);
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) closeModal();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && overlay.classList.contains('active')) closeModal();
+    });
+})();
 </script>
 
 {% endblock %}

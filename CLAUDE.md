@@ -35,16 +35,21 @@ Torneo/
 │   ├── games/                    # /game/<id>, /game/new/<id>, /game/save
 │   ├── draft/                    # /draft
 │   ├── playoffs/                 # /playoffs
-│   ├── leaders/                  # /leaders
+│   ├── leaders/                  # /leaders (player leaderboards)
+│   ├── team_stats/               # /team-stats (team-level leaderboards)
+│   ├── mvp_race/                 # /mvp-race (Premio Kindelan + Premio Lazo)
 │   ├── antesala/                 # /antesala (analysts, predictions, tweet feed)
 │   └── weekly/                   # /weekly, /weekly/<week_num>
 ├── services/
 │   ├── standings.py              # get_standings(), get_all_teams()
+│   ├── player_stats.py           # get_all_batting_lines(), get_all_pitching_lines() — shared aggregates
 │   ├── weekly.py                 # weekly summaries, tweets, predictions, game picks
 │   ├── power_rankings.py         # compute_power_rankings()
 │   ├── game_import.py            # insert_game() + validate_game()
 │   └── attributes_import.py      # bulk_upsert()
-├── lib/utils.py                  # format_ip() — Jinja2 global
+├── lib/
+│   ├── utils.py                  # format_ip() — Jinja2 global
+│   └── stats.py                  # BattingLine, PitchingLine — rate stat source of truth
 ├── templates/
 │   ├── base.html                 # Layout: sidebar, {% block content %}, {% block scripts %}
 │   ├── components/               # Reusable macros (see UI Components below)
@@ -81,6 +86,20 @@ Torneo/
 - **Sortable tables**: `data-sort="num|text"` on `<th>` + `initSortableTable(el)` in `{% block scripts %}`
 - **`stat-num` class**: Barlow Condensed, `--text-2xl`, bold — for all prominent numbers
 
+## Stat Calculations — `lib/stats.py`
+
+**All rate stats come from two frozen dataclasses in `lib/stats.py`:**
+
+- **`BattingLine`** — holds counting stats (`AB, R, H, doubles, triples, HR, RBI, BB, SO, SB`) and exposes `AVG`, `OBP`, `SLG`, `OPS`, `TB`, `ISO`, `singles` as `@property`.
+- **`PitchingLine`** — holds `IP_outs, H, R, ER, BB, SO, HR_allowed, W, L, SV` and exposes `ERA`, `WHIP`, `K9`.
+
+**Rules (load-bearing):**
+- **Never reimplement AVG/OBP/SLG/OPS/ERA/WHIP/K9 math** anywhere — not in SQL, not in services, not in templates. If you need a rate stat, build a `BattingLine`/`PitchingLine` and read the property.
+- `BattingLine.from_row(sqlite3.Row | dict)` is the canonical constructor — any query that returns SUM() columns with the expected names can be wrapped.
+- **OBP is an approximation**: `(H + BB) / (AB + BB)` — we don't track HBP or SF. OPS is computed from unrounded OBP + SLG internally, so don't try to recompute it from the rounded `obp`/`slg` properties.
+- Services returning totals should return `BattingLine`/`PitchingLine` (or `None`), not dicts. Templates access `.AVG`, `.OPS`, `.ERA` via attribute syntax.
+- **Shared per-player aggregates** live in `services/player_stats.py`: `get_all_batting_lines()` / `get_all_pitching_lines()` return list-of-dicts with player/team identity fields plus all counting and rate stats merged in (dict form so the `leaderboard_table` macro's `p[key]` subscript access keeps working). Both `/leaders` and `/mvp-race` consume these — don't duplicate the aggregate SQL.
+
 ## Database Schema
 
 | Table | Key columns / gotchas |
@@ -106,6 +125,7 @@ Torneo/
 - **Regular season:** 96 games (4 per week, 24 weeks), each team plays 24
 - **Playoffs:** Top 4 advance. Best-of-5 semis and finals
 - **Draft:** 3 rounds, 8 picks each. Players marked `is_drafted=1`
+- **Season awards:** **Premio Kindelan** (batter MVP, OPS-driven) and **Premio Lazo** (pitcher Cy Young, ERA-driven). Full scoring formula in `memory/project_mvp_awards.md` and `blueprints/mvp_race/services.py`. Live race rendered at `/mvp-race`.
 
 ## Game Data Entry — Complete Workflow
 
@@ -128,6 +148,8 @@ Games folder: `Games/game{N}/` with 6 PNG screenshots + `lanzamientos.txt`.
 
 **Column mappings:** VB=AB, C=R, H=H, IMP=RBI, BB=BB, SO=SO, AVE=verification only. Pitching: INN=IP_outs, C=R, CL=ER, PCL=skip.
 
+**`lanzamientos.txt` is REQUIRED, not informational.** It lists each pitcher and their pitch count (e.g. `Vega 49`). These map directly to `pitching_stats.pitches` and drive the unavailable-pitchers rest logic on the schedule page. Every pitcher in the box score must have their `pitches` value passed to `insert_game()` — never leave it at 0. If a pitcher appears in the box score but not in lanzamientos (very low pitch count reliever), use 0 only after confirming they're absent from the file.
+
 ### Step 2: Insert game data
 
 ```python
@@ -136,6 +158,8 @@ game_id = insert_game(schedule_id=N, home_runs=X, away_runs=Y, ...)
 ```
 
 `insert_game()` validates via 7 cross-checks and **raises ValueError** on failure.
+
+**Mercy-rule games (< 9 innings):** the IP-count check expects ≥24 outs (away) / ≥27 outs (home). A mercy-rule game will trip this even though the data is valid. The `ValueError` is raised **after** the DB commit, so the game is already saved — catch the exception if the only failures are `"only N outs, expected >= M"` and continue. **Do not `print(msg)` raw on Windows** — the failure message contains `✗` (U+2717) and the default `cp1252` stdout encoding will crash with `UnicodeEncodeError`. Either strip it, encode with `errors='replace'`, or run with `PYTHONIOENCODING=utf-8`.
 
 ### Step 3: Generate post-game tweets (MANDATORY)
 
@@ -185,18 +209,30 @@ Run `python weekly.py N` — prints results, standings, top performers, upcoming
 
 ### Step 2: Save weekly content
 - **POTW + Power Rankings**: `compute_power_rankings(N)` then `save_weekly_awards(N, potw_id, summary, rankings, game_of_week_id)`
+- **Per-team blurbs on the rankings are MANDATORY.** `compute_power_rankings()` does NOT generate them — each entry comes back with `blurb` absent or empty. Write a 1–2 sentence `blurb` per team (who starred, who collapsed, what the takeaway is) and inject it into each dict before saving. `/weekly` and the power-rankings panel read this field; missing blurbs render as empty space.
 - **Weekly analyses** (3 per week, 4 sentences each, NOT tweets): `save_weekly_tweets(N, [...])`
   - These are longer analysis pieces shown on `/weekly`, different from per-game tweets
   - `save_weekly_tweets` only deletes weekly tweets (`game_id IS NULL`), not game tweets
 
 ### Step 3: Generate predictions for week N+1
 ```python
+from services.weekly import generate_game_picks, save_game_picks, pick_game_of_week
 picks = generate_game_picks(N+1)  # weighted: fav bias > rankings > pitching > H2H
 save_game_picks(N+1, picks)
-gotw = pick_game_of_week(N+1)     # closest power ranking matchup
+gotw_sched_id = pick_game_of_week(N+1)  # closest power ranking matchup
+
+# pick_game_of_week() only COMPUTES — you must persist it yourself.
+# For past weeks save_weekly_awards(N, ...) does this. For N+1 there's no
+# POTW/rankings yet, so upsert weekly_awards directly with just the GotW:
+from db import get_db
+get_db().execute("""
+    INSERT INTO weekly_awards (week_num, game_of_week_id) VALUES (?, ?)
+    ON CONFLICT(week_num) DO UPDATE SET game_of_week_id = excluded.game_of_week_id
+""", (N+1, gotw_sched_id))
+get_db().commit()
 ```
 
-Predictions show on `/schedule` — analyst avatars next to predicted winner, gold "Juego de la Semana" badge.
+Predictions show on `/schedule` — analyst avatars next to predicted winner, gold "Juego de la Semana" badge reads from `weekly_awards.game_of_week_id`. If the badge doesn't render for the upcoming week, the upsert above is what's missing. All weekly services live in `services/weekly.py` — there is no `blueprints/weekly/services.py`.
 
 ### Analyst prediction weights
 | Factor | Panfilo | Chequera | Facundo |
@@ -208,14 +244,68 @@ Predictions show on `/schedule` — analyst avatars next to predicted winner, go
 
 Prediction accuracy tracked via `get_prediction_records()` — correct/total/pct per analyst.
 
-## Player Attributes Entry
+## Player Attributes — Entry & Audit
 
-All 8 teams entered. Use `services/attributes_import.py :: bulk_upsert()`.
+### Field mapping
 
-Screenshots in `C:\Users\ernes\Videos\Captures`, crop with `python scripts/crop_attributes.py`.
+**Batter:** vs ZUR (Pod/Con) → `power_vs_l` / `contact_vs_l`. vs DER → `power_vs_r` / `contact_vs_r`. Vel → `speed`.
 
-**Batter:** vs ZUR (power_vs_l, contact_vs_l) / vs DER (power_vs_r, contact_vs_r) / Vel (speed)
+**Pitcher:** ESTAMINA → `stamina`, plus an arsenal of ≤6 pitch ratings:
 
-**Pitcher:** ESTAMINA (stamina) + pitch types: R4C=fastball, SLD=slider, CRV=curveball, SNK=sinker, TND=changeup, SPL=splitter, SCR=screwball, CBB=curveball_dirt, RCT=cutter
+| R4C | SLD | CRV | SNK | TND | SPL | SCR | CBB | RCT | CCL |
+|---|---|---|---|---|---|---|---|---|---|
+| fastball | slider | curveball | sinker | changeup | splitter | screwball | curveball_dirt | cutter | circle_changeup |
 
-**Duplicate names:** Use `upsert_attributes(player_id, attrs)` with specific ID.
+`CBB` ("dirty curve") is distinct from `CRV`. `CCL` (circle change) is rare — only G. Concepcion (IND) has it as of the VCL/GRA/SCU/IND audit.
+
+### Player photo organization
+
+Photos live at `static/graphics/players/<SHORT>/<NormalizedName>.png`. Slug rules: strip periods, join with underscores. `R. Lunar` → `R_Lunar.png`, `C. Barrabi Jr.` → `C_Barrabi_Jr.png`. Duplicates within a team append the jersey number: `Y_Perez_11.png` (bench) vs `Y_Perez_56.png` (rotation).
+
+**Status:** VCL, GRA, SCU, IND complete (100 photos, audited and corrected). **CAV, LTU, PRI, SSP** still need to be screenshotted and audited.
+
+### Workflow A: New screenshots → organized
+
+1. Capture roster screens → `C:\Users\ernes\Videos\Captures\`.
+2. `python scripts/crop_attributes.py` — crops the top 43% of each PNG to `Videos/Captures/cropped/`.
+3. Identify each cropped image (read team + player name off the screen, match to DB) and append to `.scratch/roster_ids.md`:
+   ```
+   <timestamp> | <TEAM> | <db_name> | <screen_label_for_reference>
+   10_24_18 AM | VCL | R. Lunar | RF Ramon E Lunar #66
+   ```
+4. `python scripts/organize_roster_pics.py` — moves each image into `static/graphics/players/<TEAM>/<slug>.png`. Idempotent.
+
+### Workflow B: Audit existing photos against DB
+
+When a team's `player_attributes` rows are suspect (typos, swapped columns, wrong-row entries):
+
+1. `python scripts/crop_for_audit.py` — generates 3× upscaled crops at `.scratch/attr_crops/<TEAM>/`. **`CROP_BOX` right edge must be ≥0.85** — at 0.82 the second pitch column is silently clipped (this is how J. Martinez's `SNK=95` got missed on the first pass).
+2. View each crop and append to `.scratch/attr_audit.md` in the strict format the parser expects:
+   ```
+   ## VCL batters
+   VCL/R_Lunar.png | 90 90 | 80 90 | 90
+                     pvl cvl  pvr cvr  spd
+
+   ## VCL pitchers
+   VCL/J_Martinez.png | 96 | R4C=97 SLD=95 SNK=95 SPL=93 CRV=93
+                        stm   <pitch>=<value> pairs in any order/subset
+   ```
+   The `## TEAM batters` / `## TEAM pitchers` headers are mandatory — pitcher lines only parse under a `pitcher` section. Parser is `BATTER_LINE` / `PITCHER_LINE` / `parse_pitch_rest` in `scripts/audit_attributes.py`.
+3. `python scripts/audit_attributes.py` — diffs every line against `player_attributes` and reports `DB=X SCREEN=Y` mismatches. A `"DB=X but NOT on screen"` line means the original entry mapped a value to the wrong pitch column.
+4. `python scripts/fix_team_attributes.py <TEAM>` (dry run) → `python scripts/fix_team_attributes.py <TEAM> --apply`. Pitch columns absent from the audit line are **reset to NULL** — the on-screen view is authoritative for pitch arsenal.
+
+### Audit gotchas (from the VCL/GRA/SCU/IND pass)
+
+- **Trust `players.role` over the on-screen position label.** The game sometimes labels a rotation pitcher as "RP" or vice versa; the DB role is what drives lineup/rotation logic.
+- **`unslugify` strips trailing periods** (`C_Barrabi_Jr` → `C. Barrabi Jr`). Both fix and audit scripts try `name` and `name + "."` when looking up `players.name`.
+- **Common error patterns observed in entered data:**
+  - Swapped `contact_vs_l` ↔ `contact_vs_r` (A. Pestano style)
+  - Pitch columns shuffled — fastball/curveball/changeup rotated (Y. Perez #56 style)
+  - Single-field 15–25 point gaps from wrong-row entries (A. Zamora PvL, L. Borroto stamina)
+  - Pitch on screen but missing from DB entirely (Y. Lopez `curveball_dirt`)
+  - Lots of 1–3 point typos throughout
+- **Save round-trip cost** — when reading 25+ images, batch them in single-message parallel `Read` calls and only update `attr_audit.md` once per batch. Don't re-crop unless the right-edge bound is wrong.
+
+### Bulk entry (`services/attributes_import.py :: bulk_upsert()`)
+
+Still the right tool for fresh entry of an unaudited team. For duplicate names within a team, pass `upsert_attributes(player_id, attrs)` with the specific player ID instead.

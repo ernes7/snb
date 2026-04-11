@@ -157,3 +157,34 @@ def save_boxscore(game_id: int, form: ImmutableMultiDict[str, str]) -> None:
             """, (game_id, player_id, team_id, *vals, w, l, sv))
 
     db.commit()
+
+    _maybe_auto_generate_next_week(game_id)
+
+
+def _maybe_auto_generate_next_week(game_id: int) -> str | None:
+    """If this box score completes a week and the next week hasn't started,
+    auto-generate rankings / picks / GOTW for the next week.
+
+    Safe to fail silently — returns a status message or None.
+    """
+    from services.weekly import auto_generate_week, can_auto_generate
+
+    db = get_db()
+    row = db.execute("""
+        SELECT s.week_num FROM games g
+        JOIN schedule s ON g.schedule_id = s.id
+        WHERE g.id = ?
+    """, (game_id,)).fetchone()
+    if not row:
+        return None
+
+    target_week = row["week_num"] + 1
+    allowed, _ = can_auto_generate(target_week)
+    if not allowed:
+        return None
+
+    try:
+        auto_generate_week(target_week)
+        return f"auto-generated week {target_week}"
+    except Exception:
+        return None

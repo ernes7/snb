@@ -1,0 +1,25 @@
+{# Inline SVG sparkline — self-normalized to min/max of its own series.
+   Empty/single-point series render a flat line. #}
+{% macro sparkline(points, width=60, height=18) %}
+{% if points and points|length > 1 %}
+    {% set vmin = points|min %}
+    {% set vmax = points|max %}
+    {% set span = vmax - vmin %}
+    {% set step = width / (points|length - 1) %}
+    {% set coords = [] %}
+    {% for v in points %}
+        {% set x = (loop.index0 * step)|round(2) %}
+        {% if span > 0 %}
+            {% set y = (height - ((v - vmin) / span) * height)|round(2) %}
+        {% else %}
+            {% set y = (height / 2)|round(2) %}
+        {% endif %}
+        {% set _ = coords.append(x ~ ',' ~ y) %}
+    {% endfor %}
+    <svg class="sparkline" viewBox="0 0 {{ width }} {{ height }}" width="{{ width }}" height="{{ height }}" preserveAspectRatio="none" aria-hidden="true">
+        <polyline points="{{ coords|join(' ') }}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+{% else %}
+    <span class="sparkline-empty" aria-hidden="true"></span>
+{% endif %}
+{% endmacro %}

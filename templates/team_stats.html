@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% from 'components/team_link.html' import team_link %}
+{% from 'components/empty_state.html' import empty_state %}
+{% block title %}Estadisticas de Equipos - Serie Nacional{% endblock %}
+{% block content %}
+<h1>Estadisticas de Equipos</h1>
+
+{% if not bat_teams and not pitch_teams %}
+{{ empty_state('Las estadisticas apareceran cuando se registren juegos.') }}
+{% endif %}
+
+<div class="bento">
+
+{% if bat_teams %}
+<div class="panel">
+    <h2>Bateo por Equipo</h2>
+    <table class="leaderboard stat-table">
+        <caption class="sr-only">Equipos ordenados por OPS</caption>
+        <thead>
+            <tr>
+                <th class="num" scope="col">#</th>
+                <th scope="col">Equipo</th>
+                <th class="num" scope="col">AB</th>
+                <th class="num" scope="col">H</th>
+                <th class="num" scope="col">HR</th>
+                <th class="num" scope="col">CI</th>
+                <th class="num" scope="col">AVG</th>
+                <th class="num" scope="col">OBP</th>
+                <th class="num" scope="col">SLG</th>
+                <th class="num" scope="col">OPS</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for t in bat_teams %}
+            <tr>
+                <td class="num">{{ loop.index }}</td>
+                <td>{{ team_link(t.short_name, t.name, t.color_primary, t.logo_file) }}</td>
+                <td class="num">{{ t.line.AB }}</td>
+                <td class="num">{{ t.line.H }}</td>
+                <td class="num">{{ t.line.HR }}</td>
+                <td class="num">{{ t.line.RBI }}</td>
+                <td class="num">{{ "%.3f"|format(t.line.AVG) }}</td>
+                <td class="num">{{ "%.3f"|format(t.line.OBP) }}</td>
+                <td class="num">{{ "%.3f"|format(t.line.SLG) }}</td>
+                <td class="num pct"><strong>{{ "%.3f"|format(t.line.OPS) }}</strong></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if pitch_teams %}
+<div class="panel">
+    <h2>Pitcheo por Equipo</h2>
+    <table class="leaderboard stat-table">
+        <caption class="sr-only">Equipos ordenados por efectividad</caption>
+        <thead>
+            <tr>
+                <th class="num" scope="col">#</th>
+                <th scope="col">Equipo</th>
+                <th class="num" scope="col">IP</th>
+                <th class="num" scope="col">H</th>
+                <th class="num" scope="col">BB</th>
+                <th class="num" scope="col">SO</th>
+                <th class="num" scope="col">WHIP</th>
+                <th class="num" scope="col">K/9</th>
+                <th class="num" scope="col">ERA</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for t in pitch_teams %}
+            <tr>
+                <td class="num">{{ loop.index }}</td>
+                <td>{{ team_link(t.short_name, t.name, t.color_primary, t.logo_file) }}</td>
+                <td class="num">{{ format_ip(t.line.IP_outs) }}</td>
+                <td class="num">{{ t.line.H }}</td>
+                <td class="num">{{ t.line.BB }}</td>
+                <td class="num">{{ t.line.SO }}</td>
+                <td class="num">{{ "%.2f"|format(t.line.WHIP) }}</td>
+                <td class="num">{{ "%.2f"|format(t.line.K9) }}</td>
+                <td class="num pct"><strong>{{ "%.2f"|format(t.line.ERA) }}</strong></td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+</div>
+{% endblock %}

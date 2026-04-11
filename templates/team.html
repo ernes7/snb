@@ -21,13 +21,13 @@
 </div>
 
 {% if stats %}
-<div class="card team-border" style="--team-color: {{ team.color_primary }}">
+<div class="card team-border team-scoped" style="--team-color: {{ team.color_primary }}">
     {{ stat_box(stats.wins, 'Ganados') }}
     {{ stat_box(stats.losses, 'Perdidos') }}
     {{ stat_box(stats.pct, 'PCT') }}
     {{ stat_box(stats.rs, 'CA') }}
     {{ stat_box(stats.ra, 'CL') }}
-    {{ stat_box(('+' if stats.diff > 0 else '') ~ stats.diff, 'DIF') }}
+    {{ stat_box(('+' if stats.diff > 0 else '') ~ stats.diff, 'DIF', animate=False) }}
 </div>
 {% endif %}
 
@@ -37,13 +37,17 @@
     <h2>Bateo</h2>
     <table class="stat-table">
         <caption class="sr-only">Estadisticas de bateo del equipo</caption>
-        <thead><tr><th class="num" scope="col">AB</th><th class="num" scope="col">R</th><th class="num" scope="col">H</th><th class="num" scope="col">2B</th><th class="num" scope="col">3B</th><th class="num" scope="col">HR</th><th class="num" scope="col">RBI</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th><th class="num" scope="col">SB</th><th class="num" scope="col">AVG</th></tr></thead>
+        <thead><tr><th class="num" scope="col">AB</th><th class="num" scope="col">R</th><th class="num" scope="col">H</th><th class="num" scope="col">2B</th><th class="num" scope="col">3B</th><th class="num" scope="col">HR</th><th class="num" scope="col">RBI</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th><th class="num" scope="col">SB</th><th class="num" scope="col">AVG</th><th class="num" scope="col">OBP</th><th class="num" scope="col">SLG</th><th class="num" scope="col">OPS</th></tr></thead>
         <tbody>
         <tr>
             <td class="num">{{ bat_totals.AB }}</td><td class="num">{{ bat_totals.R }}</td><td class="num">{{ bat_totals.H }}</td>
             <td class="num">{{ bat_totals.doubles }}</td><td class="num">{{ bat_totals.triples }}</td><td class="num">{{ bat_totals.HR }}</td>
             <td class="num">{{ bat_totals.RBI }}</td><td class="num">{{ bat_totals.BB }}</td><td class="num">{{ bat_totals.SO }}</td>
-            <td class="num">{{ bat_totals.SB }}</td><td class="num pct">{{ "%.3f"|format(bat_totals.AVG) }}</td>
+            <td class="num">{{ bat_totals.SB }}</td>
+            <td class="num pct">{{ "%.3f"|format(bat_totals.AVG) }}</td>
+            <td class="num pct">{{ "%.3f"|format(bat_totals.OBP) }}</td>
+            <td class="num pct">{{ "%.3f"|format(bat_totals.SLG) }}</td>
+            <td class="num pct"><strong>{{ "%.3f"|format(bat_totals.OPS) }}</strong></td>
         </tr>
         </tbody>
     </table>
