@@ -1,121 +1,135 @@
 {% extends "base.html" %}
 {% from 'components/stat_box.html' import stat_box %}
-{% from 'components/section_label.html' import section_label %}
+{% from 'components/attr_bar.html' import attr_bar %}
+{% from 'components/sparkline.html' import sparkline %}
 {% from 'components/logo_img.html' import logo_img %}
 {% from 'components/empty_state.html' import empty_state %}
 {% block title %}{{ player.name }} - {{ player.team_name }}{% endblock %}
 {% block content %}
-<div class="player-header">
+
+{# ── Hero ── #}
+<div class="player-hero" style="--team-color: {{ player.color_primary }}">
+    {% if player.logo_file %}
+    <img src="{{ url_for('static', filename='graphics/' + player.logo_file) }}"
+         alt="" class="player-hero-bg-logo" aria-hidden="true">
+    {% endif %}
+
     {% if player.photo_file %}
-    <div class="player-photo-wrapper">
-        <img src="{{ url_for('static', filename='graphics/' + player.photo_file) }}" alt="{{ player.name }}">
-        <div class="overlay"></div>
+    <div class="player-hero-photo">
+        <img src="{{ url_for('static', filename='graphics/' + player.photo_file) }}"
+             alt="{{ player.full_name or player.name }}">
     </div>
     {% endif %}
-    <div>
-        <div class="text-muted text-sm">
-            {{ player.position }} | {{ player.role|upper }}
-            {% if player.is_drafted %} | <span class="drafted">DRAFTED</span>{% endif %}
+
+    <div class="player-hero-info">
+        <div class="player-hero-name">{{ player.full_name or player.name }}</div>
+        <div class="player-hero-tags">
+            <span class="player-hero-tag player-hero-tag-accent">{{ player.position }}</span>
+            <span class="player-hero-tag">{{ player.role|upper }}</span>
+            {% if player.role in ('lineup', 'bench') %}
+                <span class="player-hero-tag">B/T: {{ player.bats_throws }}</span>
+                {% if player.lineup_order %}
+                    <span class="player-hero-tag">Orden #{{ player.lineup_order }}</span>
+                {% endif %}
+            {% else %}
+                <span class="player-hero-tag">Tira: {{ player.bats_throws }}</span>
+                {% if player.bullpen_role %}
+                    <span class="player-hero-tag">{{ player.bullpen_role }}</span>
+                {% endif %}
+            {% endif %}
+            {% if player.is_drafted %}
+                <span class="player-hero-tag player-hero-tag-accent">DRAFTED</span>
+            {% endif %}
         </div>
-        <h1 class="mb-1 team-color" style="--team-color: {{ player.color_primary }}">
-            {{ player.full_name or player.name }}
-        </h1>
-        <div>
-            {{ logo_img(player.logo_file, css_class='inline-logo', alt=player.team_name) }}
-            <a href="{{ url_for('teams.team', short=player.team_short) }}" class="team-color-bold" style="--team-color: {{ player.color_primary }}">
-                {{ player.team_name }}
-            </a>
-            <span class="text-muted">({{ player.owner }})</span>
-        </div>
-        {% if player.role in ('lineup', 'bench') %}
-        <div class="text-muted text-sm mt-1">
-            Batea: {{ player.bats_throws }}
-            {% if player.lineup_order %} | Orden: #{{ player.lineup_order }}{% endif %}
-        </div>
-        {% else %}
-        <div class="text-muted text-sm mt-1">
-            Tira: {{ player.bats_throws }}
-            {% if player.bullpen_role %} | Rol: {{ player.bullpen_role }}{% endif %}
+        {% if draft %}
+        <div class="player-hero-tags" style="margin-top: var(--space-2);">
+            <span class="player-hero-tag">Pick #{{ draft.pick_num }}</span>
+            <span class="player-hero-tag">Ronda {{ draft.round }}</span>
+            <span class="player-hero-tag">{{ draft.position_drafted }}</span>
         </div>
         {% endif %}
     </div>
 </div>
 
-{% if draft %}
-<div class="card border-left-accent">
-    {{ section_label('Draft') }}
-    Pick #{{ draft.pick_num }} (Ronda {{ draft.round }}) — Seleccionado como {{ draft.position_drafted }}
-</div>
-{% endif %}
-
+{# ── Attributes ── #}
 {% if attrs %}
 <h2>Atributos</h2>
 <div class="card team-scoped" style="--team-color: {{ player.color_primary }}">
     {% if attrs.power_vs_l is not none %}
-    <div class="attr-group">
-        {{ stat_box(attrs.speed, 'Velocidad') }}
+    <div class="attr-standalone">
+        {{ attr_bar(attrs.speed, 'Velocidad') }}
     </div>
-    <div class="attr-splits">
-        <div>
-            {{ section_label('vs Zurdos') }}
-            <div class="attr-row">
-                {{ stat_box(attrs.power_vs_l, 'Poder') }}
-                {{ stat_box(attrs.contact_vs_l, 'Contacto') }}
-            </div>
+    <div class="attr-panel">
+        <div class="attr-panel-section">
+            <h4>vs Zurdos</h4>
+            {{ attr_bar(attrs.power_vs_l, 'Poder') }}
+            {{ attr_bar(attrs.contact_vs_l, 'Contacto') }}
         </div>
-        <div>
-            {{ section_label('vs Derechos') }}
-            <div class="attr-row">
-                {{ stat_box(attrs.power_vs_r, 'Poder') }}
-                {{ stat_box(attrs.contact_vs_r, 'Contacto') }}
-            </div>
+        <div class="attr-panel-section">
+            <h4>vs Derechos</h4>
+            {{ attr_bar(attrs.power_vs_r, 'Poder') }}
+            {{ attr_bar(attrs.contact_vs_r, 'Contacto') }}
         </div>
     </div>
     {% endif %}
+
     {% if attrs.stamina is not none %}
-    <div class="attr-group">
-        {{ section_label('General') }}
-        <div class="attr-row">
-            {{ stat_box(attrs.stamina, 'Estamina') }}
-        </div>
+    <div class="attr-standalone">
+        {{ attr_bar(attrs.stamina, 'Estamina') }}
     </div>
-    <div>
-        {{ section_label('Pitcheos') }}
-        <div class="attr-row flex-wrap">
-            {% if attrs.fastball %}{{ stat_box(attrs.fastball, 'R4C') }}{% endif %}
-            {% if attrs.slider %}{{ stat_box(attrs.slider, 'SLD') }}{% endif %}
-            {% if attrs.curveball %}{{ stat_box(attrs.curveball, 'CRV') }}{% endif %}
-            {% if attrs.sinker %}{{ stat_box(attrs.sinker, 'SNK') }}{% endif %}
-            {% if attrs.changeup %}{{ stat_box(attrs.changeup, 'TND') }}{% endif %}
-            {% if attrs.splitter %}{{ stat_box(attrs.splitter, 'SPL') }}{% endif %}
-            {% if attrs.screwball %}{{ stat_box(attrs.screwball, 'SCR') }}{% endif %}
-            {% if attrs.cutter %}{{ stat_box(attrs.cutter, 'RCT') }}{% endif %}
-            {% if attrs.curveball_dirt %}{{ stat_box(attrs.curveball_dirt, 'CBB') }}{% endif %}
-        </div>
+    <h4 style="font-family: 'Barlow Condensed', sans-serif; font-weight: 700; text-transform: uppercase; font-size: var(--text-sm); color: var(--gray-400); letter-spacing: 0.05em; margin-bottom: var(--space-2);">Arsenal</h4>
+    <div class="attr-arsenal">
+        {# Sort pitches by rating descending — build list then render #}
+        {% set pitches = [] %}
+        {% if attrs.fastball %}{% set _ = pitches.append((attrs.fastball, 'R4C')) %}{% endif %}
+        {% if attrs.slider %}{% set _ = pitches.append((attrs.slider, 'SLD')) %}{% endif %}
+        {% if attrs.curveball %}{% set _ = pitches.append((attrs.curveball, 'CRV')) %}{% endif %}
+        {% if attrs.sinker %}{% set _ = pitches.append((attrs.sinker, 'SNK')) %}{% endif %}
+        {% if attrs.changeup %}{% set _ = pitches.append((attrs.changeup, 'TND')) %}{% endif %}
+        {% if attrs.splitter %}{% set _ = pitches.append((attrs.splitter, 'SPL')) %}{% endif %}
+        {% if attrs.screwball %}{% set _ = pitches.append((attrs.screwball, 'SCR')) %}{% endif %}
+        {% if attrs.cutter %}{% set _ = pitches.append((attrs.cutter, 'RCT')) %}{% endif %}
+        {% if attrs.curveball_dirt %}{% set _ = pitches.append((attrs.curveball_dirt, 'CBB')) %}{% endif %}
+        {% if attrs.circle_changeup %}{% set _ = pitches.append((attrs.circle_changeup, 'CCL')) %}{% endif %}
+        {% for val, name in pitches|sort(reverse=true) %}
+            {{ attr_bar(val, name) }}
+        {% endfor %}
     </div>
     {% endif %}
 </div>
 {% endif %}
 
-{# Batting stats #}
+{# ── Batting Stats ── #}
 {% if bat_totals and bat_totals.AB and bat_totals.AB > 0 %}
 <h2>Estadisticas de Bateo</h2>
 <div class="card team-scoped" style="--team-color: {{ player.color_primary }}">
-    {{ stat_box("%.3f"|format(bat_totals.AVG), 'AVG') }}
-    {{ stat_box("%.3f"|format(bat_totals.OBP), 'OBP') }}
-    {{ stat_box("%.3f"|format(bat_totals.SLG), 'SLG') }}
-    {{ stat_box("%.3f"|format(bat_totals.OPS), 'OPS') }}
-    {{ stat_box(bat_totals.AB, 'AB') }}
-    {{ stat_box(bat_totals.H, 'H') }}
-    {{ stat_box(bat_totals.HR, 'HR') }}
-    {{ stat_box(bat_totals.RBI, 'RBI') }}
-    {{ stat_box(bat_totals.R, 'R') }}
-    {{ stat_box(bat_totals.BB, 'BB') }}
-    {{ stat_box(bat_totals.SO, 'SO') }}
-    {{ stat_box(bat_totals.SB, 'SB') }}
+    <div class="stat-rates">
+        {{ stat_box("%.3f"|format(bat_totals.AVG), 'AVG') }}
+        {{ stat_box("%.3f"|format(bat_totals.OBP), 'OBP') }}
+        {{ stat_box("%.3f"|format(bat_totals.SLG), 'SLG') }}
+        {{ stat_box("%.3f"|format(bat_totals.OPS), 'OPS') }}
+    </div>
+    <div class="stat-counting">
+        {{ stat_box(bat_totals.AB, 'AB') }}
+        {{ stat_box(bat_totals.H, 'H') }}
+        {{ stat_box(bat_totals.HR, 'HR') }}
+        {{ stat_box(bat_totals.RBI, 'RBI') }}
+        {{ stat_box(bat_totals.R, 'R') }}
+        {{ stat_box(bat_totals.BB, 'BB') }}
+        {{ stat_box(bat_totals.SO, 'SO') }}
+        {{ stat_box(bat_totals.SB, 'SB') }}
+    </div>
 </div>
 
-<h2>Juego por Juego (Bateo)</h2>
+<div class="game-log-header">
+    <h2>Juego por Juego</h2>
+    {% if bat_spark %}
+    <div class="game-log-spark">
+        <span class="text-sm text-muted">OPS</span>
+        {{ sparkline(bat_spark, width=80, height=24) }}
+    </div>
+    {% endif %}
+</div>
 <div class="table-scroll">
 <table class="stat-table">
     <caption class="sr-only">Estadisticas de bateo por juego</caption>
@@ -139,21 +153,33 @@
 </div>
 {% endif %}
 
-{# Pitching stats #}
+{# ── Pitching Stats ── #}
 {% if pitch_totals and pitch_totals.IP_outs and pitch_totals.IP_outs > 0 %}
 <h2>Estadisticas de Pitcheo</h2>
 <div class="card team-scoped" style="--team-color: {{ player.color_primary }}">
-    {{ stat_box("%.2f"|format(pitch_totals.ERA), 'ERA') }}
-    {{ stat_box(format_ip(pitch_totals.IP_outs), 'IP', animate=False) }}
-    {{ stat_box(pitch_totals.W ~ '-' ~ pitch_totals.L, 'G-P', animate=False) }}
-    {{ stat_box(pitch_totals.SV, 'SV') }}
-    {{ stat_box(pitch_totals.SO, 'SO') }}
-    {{ stat_box(pitch_totals.H, 'H') }}
-    {{ stat_box(pitch_totals.BB, 'BB') }}
-    {{ stat_box(pitch_totals.ER, 'ER') }}
+    <div class="stat-rates">
+        {{ stat_box("%.2f"|format(pitch_totals.ERA), 'ERA') }}
+        {{ stat_box(format_ip(pitch_totals.IP_outs), 'IP', animate=False) }}
+        {{ stat_box(pitch_totals.W ~ '-' ~ pitch_totals.L, 'G-P', animate=False) }}
+        {{ stat_box(pitch_totals.SV, 'SV') }}
+    </div>
+    <div class="stat-counting">
+        {{ stat_box(pitch_totals.SO, 'SO') }}
+        {{ stat_box(pitch_totals.H, 'H') }}
+        {{ stat_box(pitch_totals.BB, 'BB') }}
+        {{ stat_box(pitch_totals.ER, 'ER') }}
+    </div>
 </div>
 
-<h2>Juego por Juego (Pitcheo)</h2>
+<div class="game-log-header">
+    <h2>Juego por Juego</h2>
+    {% if pitch_spark %}
+    <div class="game-log-spark">
+        <span class="text-sm text-muted">ERA</span>
+        {{ sparkline(pitch_spark, width=80, height=24) }}
+    </div>
+    {% endif %}
+</div>
 <div class="table-scroll">
 <table class="stat-table">
     <caption class="sr-only">Estadisticas de pitcheo por juego</caption>

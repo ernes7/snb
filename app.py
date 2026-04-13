@@ -36,6 +36,7 @@ def register_blueprints(app: Flask) -> None:
     from blueprints.mvp_race import mvp_race_bp
     from blueprints.antesala import antesala_bp
     from blueprints.weekly import weekly_bp
+    from blueprints.periodico import periodico_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(teams_bp)
@@ -49,6 +50,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(mvp_race_bp)
     app.register_blueprint(antesala_bp)
     app.register_blueprint(weekly_bp)
+    app.register_blueprint(periodico_bp)
 
 
 def register_error_handlers(app: Flask) -> None:

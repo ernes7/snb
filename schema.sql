@@ -162,6 +162,17 @@ CREATE TABLE weekly_awards (
     UNIQUE(week_num)
 );
 
+CREATE TABLE newspaper_editions (
+    id INTEGER PRIMARY KEY,
+    edition_num INTEGER UNIQUE NOT NULL,
+    week_num INTEGER NOT NULL,
+    headline TEXT NOT NULL,
+    subheadline TEXT,
+    articles TEXT NOT NULL,
+    interview TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
 CREATE TABLE analyst_game_picks (
     id INTEGER PRIMARY KEY,
     analyst_id INTEGER REFERENCES analysts(id),

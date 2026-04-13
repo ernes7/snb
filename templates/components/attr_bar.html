@@ -1,0 +1,18 @@
+{# Horizontal attribute bar with color-coded fill.
+   value: 0-99 attribute rating
+   label: display name (e.g. "Poder", "R4C")
+   max: scale ceiling (default 99) #}
+{% macro attr_bar(value, label, max=99) %}
+{% set pct = (value / max * 100)|round(1) %}
+{% if value >= 85 %}{% set tier = 'elite' %}
+{% elif value >= 70 %}{% set tier = 'good' %}
+{% elif value >= 55 %}{% set tier = 'avg' %}
+{% else %}{% set tier = 'low' %}{% endif %}
+<div class="attr-bar">
+    <span class="attr-bar-label">{{ label }}</span>
+    <div class="attr-bar-track">
+        <div class="attr-bar-fill attr-bar-{{ tier }}" style="width: {{ pct }}%"></div>
+    </div>
+    <span class="attr-bar-value">{{ value }}</span>
+</div>
+{% endmacro %}

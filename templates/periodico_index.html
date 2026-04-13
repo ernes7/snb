@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from 'components/empty_state.html' import empty_state %}
+{% block title %}En Tres y Dos - Serie Nacional{% endblock %}
+{% block content %}
+<h1>En Tres y Dos</h1>
+<p class="text-muted mb-4">El periodico de la Serie Nacional. Una edicion cada 4 semanas.</p>
+
+{% if not editions %}
+{{ empty_state('La primera edicion se publica al terminar la semana 4.') }}
+{% else %}
+<div class="edition-grid">
+    {% for ed in editions %}
+    <a href="{{ url_for('periodico.periodico_edition', edition_num=ed.edition_num) }}" class="edition-card">
+        <div class="edition-card-header">
+            <span class="edition-num">Ed. {{ ed.edition_num }}</span>
+            <span class="edition-weeks">Semanas {{ (ed.edition_num - 1) * 4 + 1 }}–{{ ed.week_num }}</span>
+        </div>
+        <div class="edition-card-masthead">EN TRES Y DOS</div>
+        <h3 class="edition-card-headline">{{ ed.headline }}</h3>
+        {% if ed.subheadline %}
+        <p class="edition-card-sub">{{ ed.subheadline }}</p>
+        {% endif %}
+        <span class="edition-card-cta">Leer edicion &rarr;</span>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

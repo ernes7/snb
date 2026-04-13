@@ -11,11 +11,11 @@ Premio Kindelan (batters):
 
 Premio Lazo (pitchers):
     base = max(0, 10 - ERA) * 10
-    bonus = graded 5/4/3/2/1 points across top-5 in SO, ERA, IP (max +15)
+    bonus = graded 5/4/3/2/1 points across top-5 in SO, ERA, W (max +15)
     qualification: IP_outs >= 2.4 * team_games_played
 
 Team multiplier by standings rank (1=best, 8=worst):
-    1.10 / 1.05 / 1.00 / 0.95 / 0.90 / 0.85 / 0.80 / 0.75
+    1.06 / 1.04 / 1.02 / 1.00 / 0.98 / 0.96 / 0.94 / 0.92
 
 Design intent: OPS/ERA is king. The base spread (0-100) dwarfs the max
 +/- 15 triple-crown bonus, so a player outside the OPS top 5 cannot win
@@ -32,8 +32,8 @@ from services.player_stats import get_all_batting_lines, get_all_pitching_lines
 from services.standings import get_standings
 
 TEAM_MULTIPLIER: dict[int, float] = {
-    1: 1.10, 2: 1.05, 3: 1.00, 4: 0.95,
-    5: 0.90, 6: 0.85, 7: 0.80, 8: 0.75,
+    1: 1.06, 2: 1.04, 3: 1.02, 4: 1.00,
+    5: 0.98, 6: 0.96, 7: 0.94, 8: 0.92,
 }
 
 GRADED_POINTS = [5, 4, 3, 2, 1]  # Points for ranks 1..5
@@ -83,15 +83,23 @@ def _team_context() -> tuple[dict[int, int], dict[int, int]]:
     return rank_by_tid, games_by_tid
 
 
-def _grade_ranks(entries: list[dict[str, Any]], key: str,
-                 reverse: bool = True) -> dict[int, tuple[int, int]]:
+def _grade_ranks(
+    entries: list[dict[str, Any]],
+    key: str,
+    tiebreak: str,
+    reverse: bool = True,
+) -> dict[int, tuple[int, int]]:
     """Rank entries by `key`; return {entry_id: (rank, points)} for top 5.
 
-    Stable sort with a deterministic tiebreaker on player id. Entries
+    Ties on `key` are broken by `tiebreak` (always most-is-better — AB
+    for batters, IP_outs for pitchers) to match the `/leaders` page.
+    Final fallback on player id keeps the sort deterministic. Entries
     outside the top 5 are absent from the return dict.
     """
-    ordered = sorted(entries, key=lambda e: (e[key], -e["id"] if reverse else e["id"]),
-                     reverse=reverse)
+    if reverse:
+        ordered = sorted(entries, key=lambda e: (-e[key], -e[tiebreak], e["id"]))
+    else:
+        ordered = sorted(entries, key=lambda e: (e[key], -e[tiebreak], e["id"]))
     out: dict[int, tuple[int, int]] = {}
     for idx, e in enumerate(ordered[:5]):
         rank = idx + 1
@@ -112,9 +120,9 @@ def compute_kindelan_race() -> list[RaceEntry]:
         if (e["AB"] + e["BB"]) >= 2.0 * team_games:
             qualified.append(e)
 
-    avg_grades = _grade_ranks(qualified, "AVG")
-    hr_grades = _grade_ranks(qualified, "HR")
-    rbi_grades = _grade_ranks(qualified, "RBI")
+    avg_grades = _grade_ranks(qualified, "AVG", tiebreak="AB")
+    hr_grades = _grade_ranks(qualified, "HR", tiebreak="AB")
+    rbi_grades = _grade_ranks(qualified, "RBI", tiebreak="AB")
 
     results: list[RaceEntry] = []
     for e in qualified:
@@ -159,20 +167,20 @@ def compute_lazo_race() -> list[RaceEntry]:
         if e["IP_outs"] >= 2.4 * team_games:
             qualified.append(e)
 
-    so_grades = _grade_ranks(qualified, "SO", reverse=True)
-    era_grades = _grade_ranks(qualified, "ERA", reverse=False)
-    ip_grades = _grade_ranks(qualified, "IP_outs", reverse=True)
+    so_grades = _grade_ranks(qualified, "SO", tiebreak="IP_outs", reverse=True)
+    era_grades = _grade_ranks(qualified, "ERA", tiebreak="IP_outs", reverse=False)
+    w_grades = _grade_ranks(qualified, "W", tiebreak="IP_outs", reverse=True)
 
     results: list[RaceEntry] = []
     for e in qualified:
         pid = e["id"]
         so_b = so_grades.get(pid, (None, 0))
         era_b = era_grades.get(pid, (None, 0))
-        ip_b = ip_grades.get(pid, (None, 0))
+        w_b = w_grades.get(pid, (None, 0))
         bonuses = [
             CategoryBonus("SO", so_b[0], so_b[1]),
             CategoryBonus("ERA", era_b[0], era_b[1]),
-            CategoryBonus("IP", ip_b[0], ip_b[1]),
+            CategoryBonus("W", w_b[0], w_b[1]),
         ]
         bonus_total = sum(b.points for b in bonuses)
         base = round(max(0.0, 10 - e["ERA"]) * 10, 2)

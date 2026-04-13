@@ -39,7 +39,8 @@ Torneo/
 │   ├── team_stats/               # /team-stats (team-level leaderboards)
 │   ├── mvp_race/                 # /mvp-race (Premio Kindelan + Premio Lazo)
 │   ├── antesala/                 # /antesala (analysts, predictions, tweet feed)
-│   └── weekly/                   # /weekly, /weekly/<week_num>
+│   ├── weekly/                   # /weekly, /weekly/<week_num>
+│   └── periodico/                # /periodico (newspaper "En Tres y Dos")
 ├── services/
 │   ├── standings.py              # get_standings(), get_all_teams()
 │   ├── player_stats.py           # get_all_batting_lines(), get_all_pitching_lines() — shared aggregates
@@ -76,7 +77,8 @@ Torneo/
 | `pitcher_credits` | `pitcher_credits(wp, lp, ...)` | W/L pitcher line |
 | `pitcher_select` | `pitcher_select(name, id, ...)` | Pitcher dropdown (game form) |
 | `leaderboard_table` | `leaderboard_table(title, ...)` | Stat leader table (flexible columns) |
-| `stat_box` | `stat_box(value, label)` | Stat display box |
+| `stat_box` | `stat_box(value, label, animate)` | Stat display box (animate=False for IP, G-P, non-numeric) |
+| `sparkline` | `sparkline(points)` | Inline SVG trend chart (self-normalized) |
 | `empty_state` | `empty_state(message)` | Empty content placeholder |
 
 **Key patterns:**
@@ -118,14 +120,18 @@ Torneo/
 | `analyst_predictions` | Pre-season predictions (5 per analyst) |
 | `analyst_game_picks` | Per-game winner predictions. UNIQUE(analyst_id, schedule_id) |
 | `weekly_awards` | POTW, power_rankings (JSON), `game_of_week_id` per week |
+| `newspaper_editions` | `edition_num` (1-6), `articles` (JSON array), `interview` (JSON), `headline` |
 
 ## Domain Rules
 
 - **8 teams**: Ernesto (GRA, SSP, PRI, LTU) / Junior (SCU, VCL, IND, CAV)
 - **Regular season:** 96 games (4 per week, 24 weeks), each team plays 24
+- **Standings tiebreakers** (`services/standings.py`): sort order is win% → in-group tiebreaker → overall run differential. A **2-way tie** uses head-to-head wins, then run differential *within those same H2H games* if H2H is level — **unless the two teams share an owner** (same-owner teams never play each other in this league), in which case the tiebreaker is overall run differential directly. A **3+ way tie** uses run differential restricted to games played among the tied teams only. If the in-group tiebreaker also ties, the sort falls through to overall run differential. The GB column is computed from the top team's W-L after sorting — two teams at the top show "-" even if they got there by tiebreak.
 - **Playoffs:** Top 4 advance. Best-of-5 semis and finals
 - **Draft:** 3 rounds, 8 picks each. Players marked `is_drafted=1`
-- **Season awards:** **Premio Kindelan** (batter MVP, OPS-driven) and **Premio Lazo** (pitcher Cy Young, ERA-driven). Full scoring formula in `memory/project_mvp_awards.md` and `blueprints/mvp_race/services.py`. Live race rendered at `/mvp-race`.
+- **Season awards:** **Premio Kindelan** (batter MVP, OPS-driven) and **Premio Lazo** (pitcher Cy Young, ERA-driven). Full scoring formula in `memory/project_mvp_awards.md` and `blueprints/mvp_race/services.py`. Live race rendered at `/mvp-race`. Team multiplier is 2% steps (1.06 to 0.92). Batter triple crown = AVG/HR/RBI. Pitcher triple crown = SO/ERA/W (not IP — IP correlates too much with other stats). Tiebreakers in bonus grading: most AB for batters, most IP_outs for pitchers.
+- **Leader tiebreakers**: When stats tie on `/leaders`, batters break ties by most AB, pitchers by most IP_outs. Same logic used in MVP race bonus grading (`_grade_ranks` in `blueprints/mvp_race/services.py`).
+- **Newspaper "En Tres y Dos"**: `/periodico` route, 6 editions (every 4 weeks). See dedicated section below.
 
 ## Game Data Entry — Complete Workflow
 
@@ -244,6 +250,41 @@ Predictions show on `/schedule` — analyst avatars next to predicted winner, go
 
 Prediction accuracy tracked via `get_prediction_records()` — correct/total/pct per analyst.
 
+## Newspaper — "En Tres y Dos"
+
+Fictional Cuban baseball newspaper published every 4 weeks (6 editions total, at weeks 4/8/12/16/20/24). Lives at `/periodico` with its own cream-paper serif aesthetic.
+
+### Edition content sections:
+| Section | Description |
+|---------|-------------|
+| Portada | Masthead, headline, subheadline |
+| El Panorama | Standings + power rankings editorial |
+| La Nota del Dia | Feature article on the biggest 4-week story |
+| Radar Estadistico | 3-4 hidden stat anomalies with callout boxes |
+| La Carrera | Award race deep-dive (Kindelan + Lazo) |
+| Entrevista | Analyst-hosted player interview (rotating: Ed.1=Panfilo, Ed.2=Chequera, Ed.3=Facundo, repeat) |
+| Retrovisores | Narrative callbacks to past tweets/predictions that aged well or badly |
+
+### Data model
+`newspaper_editions` table with `articles` (JSON array) and `interview` (JSON object). Services at `blueprints/periodico/services.py`: `save_edition()`, `get_edition()`, `get_all_editions()`.
+
+### Article JSON shape
+```json
+{"type": "feature|stats|column|callback|sidebar", "title": "...", "subtitle": "...", "body": "<p>HTML body</p>", "author": null, "stat_callout": {"value": "23", "label": "hits in one game"}}
+```
+
+### Interview JSON shape
+```json
+{"analyst_id": 1, "player_id": 42, "title": "Entrevista a J. Pedroso", "questions": [{"q": "Question text", "a": "Answer text"}]}
+```
+
+### Generation workflow
+Editions are handcrafted content, not auto-generated. After 4 weeks of games:
+```python
+from blueprints.periodico.services import save_edition
+save_edition(edition_num=1, week_num=4, headline="...", subheadline="...", articles=[...], interview={...})
+```
+
 ## Player Attributes — Entry & Audit
 
 ### Field mapping
@@ -256,13 +297,13 @@ Prediction accuracy tracked via `get_prediction_records()` — correct/total/pct
 |---|---|---|---|---|---|---|---|---|---|
 | fastball | slider | curveball | sinker | changeup | splitter | screwball | curveball_dirt | cutter | circle_changeup |
 
-`CBB` ("dirty curve") is distinct from `CRV`. `CCL` (circle change) is rare — only G. Concepcion (IND) has it as of the VCL/GRA/SCU/IND audit.
+`CBB` ("dirty curve") is distinct from `CRV`. `CCL` (circle change) is rare — only G. Concepcion (IND) has it across all 8 teams.
 
 ### Player photo organization
 
 Photos live at `static/graphics/players/<SHORT>/<NormalizedName>.png`. Slug rules: strip periods, join with underscores. `R. Lunar` → `R_Lunar.png`, `C. Barrabi Jr.` → `C_Barrabi_Jr.png`. Duplicates within a team append the jersey number: `Y_Perez_11.png` (bench) vs `Y_Perez_56.png` (rotation).
 
-**Status:** VCL, GRA, SCU, IND complete (100 photos, audited and corrected). **CAV, LTU, PRI, SSP** still need to be screenshotted and audited.
+**Status:** All 8 teams complete (200 photos, all audited and corrected).
 
 ### Workflow A: New screenshots → organized
 
@@ -294,8 +335,13 @@ When a team's `player_attributes` rows are suspect (typos, swapped columns, wron
 3. `python scripts/audit_attributes.py` — diffs every line against `player_attributes` and reports `DB=X SCREEN=Y` mismatches. A `"DB=X but NOT on screen"` line means the original entry mapped a value to the wrong pitch column.
 4. `python scripts/fix_team_attributes.py <TEAM>` (dry run) → `python scripts/fix_team_attributes.py <TEAM> --apply`. Pitch columns absent from the audit line are **reset to NULL** — the on-screen view is authoritative for pitch arsenal.
 
-### Audit gotchas (from the VCL/GRA/SCU/IND pass)
+### Step 5: Verify `players.full_name` (MANDATORY)
 
+The `players` table has both `name` (abbreviated, e.g. "U. Bermudez") and `full_name` (e.g. "Ubisney Bermudez"). **Always verify `full_name` against the on-screen text** during audit — the initial data entry got 45 out of 158 full names wrong (wrong first names like "Ulises" instead of "Ubisney", "Osmani" instead of "Oscar", etc.). Also fill in any NULL `full_name` values for bench/bullpen players added later. The screenshot header shows the full name clearly — read it and UPDATE the DB.
+
+### Audit gotchas (from the full 8-team audit)
+
+- **Always verify `full_name` from the screenshot header.** Initial entry had ~28% error rate on full names — wrong first names, missing middle initials, NULL values on bench/bullpen players.
 - **Trust `players.role` over the on-screen position label.** The game sometimes labels a rotation pitcher as "RP" or vice versa; the DB role is what drives lineup/rotation logic.
 - **`unslugify` strips trailing periods** (`C_Barrabi_Jr` → `C. Barrabi Jr`). Both fix and audit scripts try `name` and `name + "."` when looking up `players.name`.
 - **Common error patterns observed in entered data:**

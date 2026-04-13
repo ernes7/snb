@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
+{% block title %}En Tres y Dos — Ed. {{ edition.edition_num }}{% endblock %}
+{% block content %}
+<div class="periodico-page-bg" style="--stadium-bg: url('{{ url_for('static', filename='graphics/estadio-bg.webp') }}')">
+<div class="newspaper">
+
+    {# ── Masthead banner ── #}
+    <header class="newspaper-masthead">
+        <img src="{{ url_for('static', filename='graphics/en-tres-y-dos-masthead.png') }}" class="newspaper-banner" alt="En Tres y Dos">
+        <div class="newspaper-masthead-meta">
+            <span>Edicion {{ edition.edition_num }}</span>
+            <span>&bull;</span>
+            <span>Semanas {{ (edition.edition_num - 1) * 4 + 1 }}–{{ edition.week_num }}</span>
+            <span>&bull;</span>
+            <span>Serie Nacional de Beisbol</span>
+        </div>
+    </header>
+
+    {# ── Front page headline ── #}
+    <div class="newspaper-headline-block">
+        <h2 class="newspaper-headline">{{ edition.headline }}</h2>
+        {% if edition.subheadline %}
+        <p class="newspaper-subheadline">{{ edition.subheadline }}</p>
+        {% endif %}
+    </div>
+
+    <div class="newspaper-divider"></div>
+
+    {# ── Lead article (full width, no columns) ── #}
+    {% if edition.articles|length > 0 %}
+    {% set lead = edition.articles[0] %}
+    <article class="newspaper-lead">
+        {% if lead.type != 'feature' %}
+        <span class="newspaper-section-tag">{{ lead.type|title }}</span>
+        {% endif %}
+        <h3 class="newspaper-article-title newspaper-lead-title">{{ lead.title }}</h3>
+        {% if lead.subtitle %}
+        <p class="newspaper-article-subtitle">{{ lead.subtitle }}</p>
+        {% endif %}
+        {% if lead.stat_callout %}
+        <div class="newspaper-callout newspaper-callout-lead">
+            <span class="newspaper-callout-val">{{ lead.stat_callout.value }}</span>
+            <span class="newspaper-callout-label">{{ lead.stat_callout.label }}</span>
+        </div>
+        {% endif %}
+        <div class="newspaper-article-body newspaper-lead-body">{{ lead.body|safe }}</div>
+    </article>
+    {% endif %}
+
+    <div class="newspaper-divider"></div>
+
+    {# ── Columned articles (2-col, dense) ── #}
+    {% if edition.articles|length > 1 %}
+    <div class="newspaper-body">
+        {% for article in edition.articles[1:] %}
+        <article class="newspaper-article {% if article.type == 'sidebar' %}newspaper-sidebar{% endif %}">
+            {% if article.type == 'stats' %}
+            <span class="newspaper-section-tag">Radar Estadistico</span>
+            {% elif article.type == 'column' %}
+            <span class="newspaper-section-tag">La Carrera</span>
+            {% elif article.type == 'callback' %}
+            <span class="newspaper-section-tag">Retrovisores</span>
+            {% elif article.type == 'feature' %}
+            <span class="newspaper-section-tag">Reportaje</span>
+            {% endif %}
+            <h3 class="newspaper-article-title">{{ article.title }}</h3>
+            {% if article.subtitle %}
+            <p class="newspaper-article-subtitle">{{ article.subtitle }}</p>
+            {% endif %}
+            {% if article.stat_callout %}
+            <div class="newspaper-callout">
+                <span class="newspaper-callout-val">{{ article.stat_callout.value }}</span>
+                <span class="newspaper-callout-label">{{ article.stat_callout.label }}</span>
+            </div>
+            {% endif %}
+            <div class="newspaper-article-body">{{ article.body|safe }}</div>
+        </article>
+        {% if not loop.last %}
+        <div class="newspaper-divider-sm"></div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="newspaper-divider"></div>
+
+    {# ── Interview (full width, with photo) ── #}
+    {% set iv = edition.interview %}
+    {% if iv and iv.questions %}
+    <section class="newspaper-interview">
+        <span class="newspaper-section-tag">Entrevista Exclusiva</span>
+        <h3 class="newspaper-interview-title">{{ iv.title|default('Entrevista exclusiva') }}</h3>
+
+        <div class="newspaper-interview-spread">
+            {% if iv.photo %}
+            <div class="newspaper-interview-photo">
+                <img src="{{ url_for('static', filename='graphics/' + iv.photo) }}" alt="Entrevista">
+                {% if analyst %}
+                <span class="newspaper-interview-caption">@{{ analyst.handle }} entrevista a {{ player.full_name or player.name if player else '' }} en el estadio.</span>
+                {% endif %}
+            </div>
+            {% endif %}
+            <div class="newspaper-interview-content">
+                {% if analyst %}
+                <div class="newspaper-interview-byline">
+                    <img src="{{ url_for('static', filename='graphics/' + analyst.avatar_file) }}" class="newspaper-interview-avatar" alt="{{ analyst.handle }}">
+                    <span>Por <strong>@{{ analyst.handle }}</strong></span>
+                </div>
+                {% endif %}
+                {% for qa in iv.questions %}
+                <div class="newspaper-qa">
+                    <p class="newspaper-q"><strong>{{ analyst.handle if analyst else 'P' }}:</strong> {{ qa.q }}</p>
+                    <p class="newspaper-a">{{ qa.a }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="newspaper-footer">
+        <div class="newspaper-masthead-rule"></div>
+        <p>En Tres y Dos &mdash; El periodico de la pelota cubana &mdash; Ed. {{ edition.edition_num }}</p>
+    </div>
+</div>
+</div>
+{% endblock %}

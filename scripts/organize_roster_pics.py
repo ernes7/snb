@@ -39,7 +39,7 @@ def slugify(name: str) -> str:
 
 
 def source_path(timestamp: str) -> Path:
-    return SOURCE_DIR / f"MVP Cuba 2011 4_10_2026 {timestamp}.png"
+    return SOURCE_DIR / f"MVP Cuba 2011 4_13_2026 {timestamp}.png"
 
 
 def main() -> None:
