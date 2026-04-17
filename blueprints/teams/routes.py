@@ -1,32 +1,36 @@
-"""Teams blueprint routes."""
+"""Teams blueprint routes.
+
+Migrated to the domain-model layer — all DB access goes through `Team`.
+The old `services.py` helpers are kept temporarily for any external
+callers; once every consumer is on models, it can be deleted.
+"""
 from __future__ import annotations
 
 from flask import abort, render_template
 
+from models import Team
+
 from . import teams_bp
-from .services import (get_team, get_roster, get_team_bat_leaders,
-                       get_team_pitch_leaders, get_team_batting_totals,
-                       get_team_pitching_totals, get_team_errors)
-from services.standings import get_standings
 
 
 @teams_bp.route('/team/<short>')
 def team(short: str) -> str:
-    t = get_team(short.upper())
-    if not t:
+    team_obj = Team.get(short)
+    if not team_obj:
         abort(404)
 
-    lineup, bench, rotation, bullpen = get_roster(t['id'])
-    standings = get_standings()
-    team_stats = next((s for s in standings if s['id'] == t['id']), None)
-    bat_leaders = get_team_bat_leaders(t['id'])
-    pitch_leaders = get_team_pitch_leaders(t['id'])
-    bat_totals = get_team_batting_totals(t['id'])
-    pitch_totals = get_team_pitching_totals(t['id'])
-    team_errors = get_team_errors(t['id'])
-
-    return render_template('team.html', team=t, lineup=lineup, bench=bench,
-                           rotation=rotation, bullpen=bullpen, stats=team_stats,
-                           bat_leaders=bat_leaders, pitch_leaders=pitch_leaders,
-                           bat_totals=bat_totals, pitch_totals=pitch_totals,
-                           team_errors=team_errors)
+    roster = team_obj.roster_by_role()
+    return render_template(
+        'team.html',
+        team=team_obj,
+        stats=team_obj.record(),
+        lineup=roster["lineup"],
+        bench=roster["bench"],
+        rotation=roster["rotation"],
+        bullpen=roster["bullpen"],
+        bat_leaders=team_obj.bat_leaders(),
+        pitch_leaders=team_obj.pitch_leaders(),
+        bat_totals=team_obj.batting_totals(),
+        pitch_totals=team_obj.pitching_totals(),
+        team_errors=team_obj.errors_committed(),
+    )

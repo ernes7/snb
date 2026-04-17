@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/team_link.html' import team_link %}
+{% block title %}Duelos - Serie Nacional{% endblock %}
+{% block content %}
+<h1>Duelos Directos</h1>
+<p class="versus-subtitle">Record en temporada regular. Fila contra columna.</p>
+
+<div class="panel versus-panel">
+<table class="versus-matrix">
+    <thead>
+        <tr>
+            <th class="versus-corner" scope="col"><span class="sr-only">Equipo</span></th>
+            {% for col in teams %}
+            <th scope="col" class="versus-head{% if loop.index == 4 %} versus-split{% endif %}" style="--team-color: {{ col.color_primary }};">
+                <span class="versus-logo-wrap">{{ logo_img(col.logo_file, 'versus-logo', col.short_name) }}</span>
+            </th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in teams %}
+        <tr{% if loop.index == 5 %} class="versus-split-row"{% endif %}>
+            <th scope="row" class="versus-head versus-row-head" style="--team-color: {{ row.color_primary }};">
+                <span class="versus-logo-wrap">{{ logo_img(row.logo_file, 'versus-logo', row.short_name) }}</span>
+            </th>
+            {% for col in teams %}
+                {% if row.id == col.id %}
+                    <td class="versus-self{% if loop.index == 4 %} versus-split{% endif %}" aria-label="mismo equipo"></td>
+                {% elif row.owner == col.owner %}
+                    <td class="versus-hatch{% if loop.index == 4 %} versus-split{% endif %}" aria-label="no enfrentan"></td>
+                {% else %}
+                    {% set cell = matrix.get((row.id, col.id)) %}
+                    {% set w = cell.w if cell else 0 %}
+                    {% set l = cell.l if cell else 0 %}
+                    {% set cls = 'versus-win' if w > l else ('versus-loss' if l > w else 'versus-tie') %}
+                    <td class="versus-cell {{ cls }}{% if loop.index == 4 %} versus-split{% endif %}" aria-label="{{ row.short_name }} {{ w }}-{{ l }} vs {{ col.short_name }}">
+                        <span class="stat-num">{{ w }}-{{ l }}</span>
+                    </td>
+                {% endif %}
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<ul class="versus-legend">
+    <li><span class="versus-legend-swatch versus-win"></span>Fila gana la serie</li>
+    <li><span class="versus-legend-swatch versus-loss"></span>Fila pierde la serie</li>
+    <li><span class="versus-legend-swatch versus-tie"></span>Serie empatada</li>
+    <li><span class="versus-legend-swatch versus-hatch"></span>Mismo dueño (no se enfrentan)</li>
+</ul>
+</div>
+
+<div class="panel">
+        <h2>Splits por Equipo</h2>
+        <div class="table-scroll"><table class="leaderboard stat-table">
+            <caption class="sr-only">Records por equipo en juegos de 1 carrera y cuando anotan primero</caption>
+            <thead>
+                <tr>
+                    <th class="num" scope="col">#</th>
+                    <th scope="col">Equipo</th>
+                    <th class="num" scope="col">1 Carrera</th>
+                    <th class="num" scope="col">Anotando 1°</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in splits %}
+                <tr>
+                    <td class="num">{{ loop.index }}</td>
+                    <td>{{ team_link(t.short_name, t.name, t.color_primary, t.logo_file) }}</td>
+                    <td class="num"><span class="stat-num">{{ t.close_w }}-{{ t.close_l }}</span></td>
+                    <td class="num"><span class="stat-num">{{ t.first_w }}-{{ t.first_l }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table></div>
+    </div>
+
+    <div class="panel versus-inning-panel">
+        <h2>Carreras por Entrada (Diferencial)</h2>
+        <div class="table-scroll"><table class="versus-innings">
+            <caption class="sr-only">Diferencial de carreras por entrada, acumulado en toda la temporada</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Equipo</th>
+                    {% for i in range(1, 10) %}<th class="num" scope="col">{{ i }}</th>{% endfor %}
+                    <th class="num" scope="col">Tot</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for team in teams %}
+                {% set diffs = inning_diff[team.id] %}
+                <tr>
+                    <th scope="row" style="--team-color: {{ team.color_primary }};">
+                        <span class="versus-team-cell">
+                            {{ logo_img(team.logo_file, 'inline-logo-sm', team.short_name) }}
+                            <span>{{ team.short_name }}</span>
+                        </span>
+                    </th>
+                    {% for d in diffs %}
+                        {% set cls = 'diff-pos' if d > 0 else ('diff-neg' if d < 0 else 'diff-zero') %}
+                        {% set mag = (d|abs) / 8.0 %}
+                        {% if mag > 1 %}{% set mag = 1 %}{% endif %}
+                        <td class="num {{ cls }}" style="--mag: {{ '%.3f'|format(mag) }};">
+                            <span class="stat-num">{% if d > 0 %}+{% endif %}{{ d }}</span>
+                        </td>
+                    {% endfor %}
+                    {% set total = diffs|sum %}
+                    <td class="num"><span class="stat-num">{% if total > 0 %}+{% endif %}{{ total }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table></div>
+    </div>
+{% endblock %}

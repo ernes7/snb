@@ -35,7 +35,7 @@
 {% if bat_totals %}
 <div class="panel">
     <h2>Bateo</h2>
-    <table class="stat-table">
+    <div class="table-scroll"><table class="stat-table">
         <caption class="sr-only">Estadisticas de bateo del equipo</caption>
         <thead><tr><th class="num" scope="col">AB</th><th class="num" scope="col">R</th><th class="num" scope="col">H</th><th class="num" scope="col">2B</th><th class="num" scope="col">3B</th><th class="num" scope="col">HR</th><th class="num" scope="col">RBI</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th><th class="num" scope="col">SB</th><th class="num" scope="col">AVG</th><th class="num" scope="col">OBP</th><th class="num" scope="col">SLG</th><th class="num" scope="col">OPS</th></tr></thead>
         <tbody>
@@ -50,13 +50,13 @@
             <td class="num pct"><strong>{{ "%.3f"|format(bat_totals.OPS) }}</strong></td>
         </tr>
         </tbody>
-    </table>
+    </table></div>
 </div>
 {% endif %}
 {% if pitch_totals %}
 <div class="panel">
     <h2>Pitcheo{% if team_errors is not none %} | E: {{ team_errors }}{% endif %}</h2>
-    <table class="stat-table">
+    <div class="table-scroll"><table class="stat-table">
         <caption class="sr-only">Estadisticas de pitcheo del equipo</caption>
         <thead><tr><th class="num" scope="col">IP</th><th class="num" scope="col">H</th><th class="num" scope="col">R</th><th class="num" scope="col">ER</th><th class="num" scope="col">BB</th><th class="num" scope="col">SO</th><th class="num" scope="col">HR</th><th class="num" scope="col">ERA</th></tr></thead>
         <tbody>
@@ -66,13 +66,13 @@
             <td class="num">{{ pitch_totals.HR_allowed }}</td><td class="num">{{ "%.2f"|format(pitch_totals.ERA) }}</td>
         </tr>
         </tbody>
-    </table>
+    </table></div>
 </div>
 {% endif %}
 
 <div class="panel">
     <h2>Alineacion</h2>
-    <table class="stat-table">
+    <div class="table-scroll"><table class="stat-table">
         <caption class="sr-only">Alineacion del equipo</caption>
         <thead><tr><th class="num" scope="col">#</th><th scope="col">Pos</th><th colspan="2" scope="col">Nombre</th><th class="num" scope="col">B</th><th scope="col"></th></tr></thead>
         <tbody>
@@ -86,11 +86,11 @@
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 </div>
 <div class="panel">
     <h2>Rotacion</h2>
-    <table class="stat-table">
+    <div class="table-scroll"><table class="stat-table">
         <caption class="sr-only">Rotacion de pitcheo</caption>
         <thead><tr><th class="num" scope="col">#</th><th colspan="2" scope="col">Nombre</th><th class="num" scope="col">T</th><th scope="col"></th></tr></thead>
         <tbody>
@@ -103,9 +103,9 @@
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
     <h2>Bullpen</h2>
-    <table class="stat-table">
+    <div class="table-scroll"><table class="stat-table">
         <caption class="sr-only">Bullpen del equipo</caption>
         <thead><tr><th scope="col">Rol</th><th scope="col">Nombre</th><th class="num" scope="col">T</th></tr></thead>
         <tbody>
@@ -117,11 +117,11 @@
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 </div>
 <div class="panel">
     <h2>Banca</h2>
-    <table class="stat-table">
+    <div class="table-scroll"><table class="stat-table">
         <caption class="sr-only">Banca del equipo</caption>
         <thead><tr><th scope="col">Pos</th><th scope="col">Nombre</th><th class="num" scope="col">B</th></tr></thead>
         <tbody>
@@ -133,12 +133,12 @@
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 </div>
 {% if bat_leaders %}
 <div class="panel">
     <h2>Lideres Bateo</h2>
-    <table class="stat-table leaderboard">
+    <div class="table-scroll"><table class="stat-table leaderboard">
         <caption class="sr-only">Lideres de bateo del equipo</caption>
         <thead><tr><th scope="col">Nombre</th><th scope="col">Pos</th><th class="num" scope="col">AB</th><th class="num" scope="col">H</th><th class="num" scope="col">HR</th><th class="num" scope="col">RBI</th><th class="num" scope="col">AVG</th></tr></thead>
         <tbody>
@@ -151,13 +151,13 @@
         </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 </div>
 {% endif %}
 {% if pitch_leaders %}
 <div class="panel">
     <h2>Lideres Pitcheo</h2>
-    <table class="stat-table leaderboard">
+    <div class="table-scroll"><table class="stat-table leaderboard">
         <caption class="sr-only">Lideres de pitcheo del equipo</caption>
         <thead><tr><th scope="col">Nombre</th><th class="num" scope="col">IP</th><th class="num" scope="col">G</th><th class="num" scope="col">P</th><th class="num" scope="col">SO</th><th class="num" scope="col">ERA</th></tr></thead>
         <tbody>
@@ -169,7 +169,7 @@
         </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 </div>
 {% endif %}
 </div>

@@ -17,11 +17,6 @@
         <option value="{{ t }}">{{ t }}</option>
         {% endfor %}
     </select>
-    <select id="owner-filter" class="filter-select">
-        <option value="">Todos los Duenos</option>
-        <option value="Ernesto">Ernesto</option>
-        <option value="Junior">Junior</option>
-    </select>
 </div>
 
 {# ── BATTERS TABLE ── #}
@@ -125,7 +120,6 @@
     var buttons = document.querySelectorAll('.toggle-btn');
     var search = document.getElementById('search');
     var teamF = document.getElementById('team-filter');
-    var ownerF = document.getElementById('owner-filter');
     var countEl = document.getElementById('player-count');
 
     var mode = 'bat';
@@ -153,13 +147,11 @@
     function applyFilters() {
         var q = search.value.toLowerCase();
         var team = teamF.value;
-        var owner = ownerF.value;
         var visible = 0;
         activeRows().forEach(function(r) {
             var name = r.cells[0].textContent.toLowerCase();
             var show = (!q || name.includes(q))
-                && (!team || r.dataset.team === team)
-                && (!owner || r.dataset.owner === owner);
+                && (!team || r.dataset.team === team);
             r.style.display = show ? '' : 'none';
             if (show) visible++;
         });
@@ -167,7 +159,6 @@
     }
     search.addEventListener('input', applyFilters);
     teamF.addEventListener('change', applyFilters);
-    ownerF.addEventListener('change', applyFilters);
 
     // Init sortable tables
     initSortableTable(document.getElementById('bat-table'));

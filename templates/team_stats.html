@@ -1,91 +1,102 @@
 {% extends "base.html" %}
-{% from 'components/team_link.html' import team_link %}
+{% from 'components/logo_img.html' import logo_img %}
 {% from 'components/empty_state.html' import empty_state %}
+{% from 'components/tabs.html' import tab_group %}
 {% block title %}Estadisticas de Equipos - Serie Nacional{% endblock %}
+
+{% macro team_logo_link(t) -%}
+<a href="{{ url_for('teams.team', short=t.short_name) }}"
+   class="team-logo-only" title="{{ t.name }}">{{ logo_img(t.logo_file, css_class='inline-logo-md', alt=t.name) }}</a>
+{%- endmacro %}
+
 {% block content %}
 <h1>Estadisticas de Equipos</h1>
 
 {% if not bat_teams and not pitch_teams %}
 {{ empty_state('Las estadisticas apareceran cuando se registren juegos.') }}
-{% endif %}
+{% else %}
 
-<div class="bento">
-
-{% if bat_teams %}
 <div class="panel">
-    <h2>Bateo por Equipo</h2>
-    <table class="leaderboard stat-table">
-        <caption class="sr-only">Equipos ordenados por OPS</caption>
-        <thead>
-            <tr>
-                <th class="num" scope="col">#</th>
-                <th scope="col">Equipo</th>
-                <th class="num" scope="col">AB</th>
-                <th class="num" scope="col">H</th>
-                <th class="num" scope="col">HR</th>
-                <th class="num" scope="col">CI</th>
-                <th class="num" scope="col">AVG</th>
-                <th class="num" scope="col">OBP</th>
-                <th class="num" scope="col">SLG</th>
-                <th class="num" scope="col">OPS</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for t in bat_teams %}
-            <tr>
-                <td class="num">{{ loop.index }}</td>
-                <td>{{ team_link(t.short_name, t.name, t.color_primary, t.logo_file) }}</td>
-                <td class="num">{{ t.line.AB }}</td>
-                <td class="num">{{ t.line.H }}</td>
-                <td class="num">{{ t.line.HR }}</td>
-                <td class="num">{{ t.line.RBI }}</td>
-                <td class="num">{{ "%.3f"|format(t.line.AVG) }}</td>
-                <td class="num">{{ "%.3f"|format(t.line.OBP) }}</td>
-                <td class="num">{{ "%.3f"|format(t.line.SLG) }}</td>
-                <td class="num pct"><strong>{{ "%.3f"|format(t.line.OPS) }}</strong></td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
-{% endif %}
+    {% call tab_group([
+        {'id': 'ts-bateo',   'label': 'Bateo',   'disabled': not bat_teams},
+        {'id': 'ts-pitcheo', 'label': 'Pitcheo', 'disabled': not pitch_teams},
+    ], aria_label='Estadisticas de equipos') %}
+        <section class="tab-pane" id="ts-bateo" role="tabpanel"
+                 {% if not bat_teams %}hidden{% endif %}>
+            {% if bat_teams %}
+            <div class="table-scroll"><table class="leaderboard stat-table">
+                <caption class="sr-only">Equipos ordenados por OPS</caption>
+                <thead>
+                    <tr>
+                        <th class="num" scope="col">#</th>
+                        <th scope="col">Equipo</th>
+                        <th class="num" scope="col">AB</th>
+                        <th class="num" scope="col">H</th>
+                        <th class="num" scope="col">HR</th>
+                        <th class="num" scope="col">CI</th>
+                        <th class="num" scope="col">AVG</th>
+                        <th class="num" scope="col">OBP</th>
+                        <th class="num" scope="col">SLG</th>
+                        <th class="num" scope="col">OPS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in bat_teams %}
+                    <tr>
+                        <td class="num">{{ loop.index }}</td>
+                        <td>{{ team_logo_link(t) }}</td>
+                        <td class="num">{{ t.line.AB }}</td>
+                        <td class="num">{{ t.line.H }}</td>
+                        <td class="num">{{ t.line.HR }}</td>
+                        <td class="num">{{ t.line.RBI }}</td>
+                        <td class="num">{{ "%.3f"|format(t.line.AVG) }}</td>
+                        <td class="num">{{ "%.3f"|format(t.line.OBP) }}</td>
+                        <td class="num">{{ "%.3f"|format(t.line.SLG) }}</td>
+                        <td class="num pct"><strong>{{ "%.3f"|format(t.line.OPS) }}</strong></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table></div>
+            {% endif %}
+        </section>
 
-{% if pitch_teams %}
-<div class="panel">
-    <h2>Pitcheo por Equipo</h2>
-    <table class="leaderboard stat-table">
-        <caption class="sr-only">Equipos ordenados por efectividad</caption>
-        <thead>
-            <tr>
-                <th class="num" scope="col">#</th>
-                <th scope="col">Equipo</th>
-                <th class="num" scope="col">IP</th>
-                <th class="num" scope="col">H</th>
-                <th class="num" scope="col">BB</th>
-                <th class="num" scope="col">SO</th>
-                <th class="num" scope="col">WHIP</th>
-                <th class="num" scope="col">K/9</th>
-                <th class="num" scope="col">ERA</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for t in pitch_teams %}
-            <tr>
-                <td class="num">{{ loop.index }}</td>
-                <td>{{ team_link(t.short_name, t.name, t.color_primary, t.logo_file) }}</td>
-                <td class="num">{{ format_ip(t.line.IP_outs) }}</td>
-                <td class="num">{{ t.line.H }}</td>
-                <td class="num">{{ t.line.BB }}</td>
-                <td class="num">{{ t.line.SO }}</td>
-                <td class="num">{{ "%.2f"|format(t.line.WHIP) }}</td>
-                <td class="num">{{ "%.2f"|format(t.line.K9) }}</td>
-                <td class="num pct"><strong>{{ "%.2f"|format(t.line.ERA) }}</strong></td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+        <section class="tab-pane" id="ts-pitcheo" role="tabpanel" hidden>
+            {% if pitch_teams %}
+            <div class="table-scroll"><table class="leaderboard stat-table">
+                <caption class="sr-only">Equipos ordenados por efectividad</caption>
+                <thead>
+                    <tr>
+                        <th class="num" scope="col">#</th>
+                        <th scope="col">Equipo</th>
+                        <th class="num" scope="col">IP</th>
+                        <th class="num" scope="col">H</th>
+                        <th class="num" scope="col">BB</th>
+                        <th class="num" scope="col">SO</th>
+                        <th class="num" scope="col">WHIP</th>
+                        <th class="num" scope="col">K/9</th>
+                        <th class="num" scope="col">ERA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in pitch_teams %}
+                    <tr>
+                        <td class="num">{{ loop.index }}</td>
+                        <td>{{ team_logo_link(t) }}</td>
+                        <td class="num">{{ format_ip(t.line.IP_outs) }}</td>
+                        <td class="num">{{ t.line.H }}</td>
+                        <td class="num">{{ t.line.BB }}</td>
+                        <td class="num">{{ t.line.SO }}</td>
+                        <td class="num">{{ "%.2f"|format(t.line.WHIP) }}</td>
+                        <td class="num">{{ "%.2f"|format(t.line.K9) }}</td>
+                        <td class="num pct"><strong>{{ "%.2f"|format(t.line.ERA) }}</strong></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table></div>
+            {% endif %}
+        </section>
+    {% endcall %}
 </div>
-{% endif %}
 
-</div>
+{% endif %}
 {% endblock %}

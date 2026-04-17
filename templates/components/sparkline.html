@@ -1,4 +1,4 @@
-{# Inline SVG sparkline with gradient fill area.
+{# Inline SVG sparkline — clean line + endpoint dot, no fill area.
    Self-normalized to min/max of its own series.
    Flat series render a centered horizontal line. #}
 {% macro sparkline(points, width=60, height=18) %}
@@ -9,7 +9,6 @@
     {% set pad = height * 0.12 %}
     {% set usable = height - pad * 2 %}
     {% set step = width / (points|length - 1) %}
-    {% set uid = range(100000)|random %}
     {% set coords = [] %}
     {% for v in points %}
         {% set x = (loop.index0 * step)|round(2) %}
@@ -21,20 +20,9 @@
         {% set _ = coords.append(x ~ ',' ~ y) %}
     {% endfor %}
     <svg class="sparkline" viewBox="0 0 {{ width }} {{ height }}" width="{{ width }}" height="{{ height }}" preserveAspectRatio="none" aria-hidden="true">
-        <defs>
-            <linearGradient id="spk-g{{ uid }}" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stop-color="currentColor" stop-opacity="0.25"/>
-                <stop offset="100%" stop-color="currentColor" stop-opacity="0.02"/>
-            </linearGradient>
-        </defs>
-        {# Fill area #}
-        <polygon points="0,{{ height }} {{ coords|join(' ') }} {{ width }},{{ height }}"
-                 fill="url(#spk-g{{ uid }})" stroke="none"/>
-        {# Line #}
         <polyline points="{{ coords|join(' ') }}"
                   fill="none" stroke="currentColor" stroke-width="1.5"
                   stroke-linecap="round" stroke-linejoin="round"/>
-        {# End dot #}
         {% set last = coords[-1].split(',') %}
         <circle cx="{{ last[0] }}" cy="{{ last[1] }}" r="2" fill="currentColor"/>
     </svg>

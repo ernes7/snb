@@ -1,102 +1,101 @@
 {% extends "base.html" %}
 {% from 'components/logo_img.html' import logo_img %}
 {% from 'components/empty_state.html' import empty_state %}
+{% from 'components/tabs.html' import tab_group %}
 {% block title %}Carrera MVP - Serie Nacional{% endblock %}
 {% block content %}
 <h1>Carrera MVP</h1>
-<p class="text-muted mb-4">Premio Kindelan al mejor bateador y Premio Lazo al mejor lanzador. Puntaje = (OPS&times;100 o (10&minus;ERA)&times;10) + bono triple corona, multiplicado por posici&oacute;n del equipo.</p>
+<p class="text-muted mb-4">Seis premios individuales, cada uno con su propio sistema de puntuaci&oacute;n. Todos aplican un multiplicador por posici&oacute;n del equipo (1.06 primer lugar &rarr; 0.92 &uacute;ltimo).</p>
 
-{% if not kindelan and not lazo %}
-{{ empty_state('La carrera aparecera cuando haya suficientes juegos jugados para clasificar bateadores y lanzadores.') }}
-{% endif %}
+{% set any_has_data = races | selectattr('entries') | list %}
+
+{% if not any_has_data %}
+{{ empty_state('La carrera aparecera cuando haya suficientes juegos jugados.') }}
+{% else %}
 
 {% macro bonus_pill(b) %}
 <span class="bonus-pill {% if b.points %}bonus-pill-earned{% endif %}">{{ b.label }}:{% if b.points %}{{ b.points }}{% else %}&mdash;{% endif %}</span>
 {% endmacro %}
 
-<div class="bento">
+{% macro mvp_table(entries, key_label, key_fmt) %}
+{# Column visibility — only show Bono/Base/Bono/Eq when they carry info.
+   When neither bonus nor multiplier is in play, Total == Base, so drop
+   the redundant Base/Bono/Eq trio and show just #, Player, Key, Total. #}
+{% set has_bonus = (entries | selectattr('bonuses') | list | length) > 0 %}
+{% set has_mult  = (entries | rejectattr('multiplier', 'eq', 1.0) | list | length) > 0 %}
+<div class="table-scroll">
+<table class="leaderboard stat-table mvp-table">
+    <thead>
+        <tr>
+            <th class="num" scope="col">#</th>
+            <th scope="col">Jugador</th>
+            <th class="num" scope="col">{{ key_label }}</th>
+            {% if has_bonus %}
+            <th scope="col">Bono</th>
+            <th class="num" scope="col">Base</th>
+            <th class="num" scope="col">Bono</th>
+            {% endif %}
+            {% if has_mult %}
+            <th class="num" scope="col">Eq.</th>
+            {% endif %}
+            <th class="num" scope="col">Total</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for e in entries %}
+        <tr class="{% if loop.index == 1 %}mvp-leader mvp-gold{% elif loop.index == 2 %}mvp-silver{% elif loop.index == 3 %}mvp-bronze{% endif %}">
+            <td class="num mvp-rank">{{ loop.index }}</td>
+            <td>
+                {{ logo_img(e.team_logo, css_class='inline-logo-sm', alt=e.team_short) }}
+                <a href="{{ url_for('players.player', player_id=e.player_id) }}">{{ e.player_name }}</a>
+            </td>
+            <td class="num">{{ key_fmt|format(e.key_stat_value) }}</td>
+            {% if has_bonus %}
+            <td class="bonus-cell">
+                {% for b in e.bonuses %}{{ bonus_pill(b) }}{% endfor %}
+            </td>
+            <td class="num">{{ "%.1f"|format(e.base) }}</td>
+            <td class="num">{{ "+" if e.bonus_total > 0 }}{{ e.bonus_total }}</td>
+            {% endif %}
+            {% if has_mult %}
+            <td class="num">&times;{{ "%.2f"|format(e.multiplier) }}</td>
+            {% endif %}
+            <td class="num stat-num"><strong>{{ "%.1f"|format(e.final) }}</strong></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endmacro %}
 
-{% if kindelan %}
+{# Build tab descriptors — one dict per race. Disabled when no entries. #}
+{% set tab_defs = [] %}
+{% for r in races %}
+    {% set _ = tab_defs.append({'id': r.id, 'label': r.label, 'disabled': not r.entries}) %}
+{% endfor %}
+
+{# First non-disabled race is the initially visible pane. #}
+{% set ns = namespace(active=none) %}
+{% for r in races %}
+    {% if ns.active is none and r.entries %}{% set ns.active = r.id %}{% endif %}
+{% endfor %}
+
 <div class="panel">
-    <h2>Premio Kindelan</h2>
-    <p class="text-muted panel-sub">Mejor bateador &mdash; OPS&times;100 + bono (AVG/HR/RBI) + mult. equipo</p>
-    <table class="leaderboard stat-table mvp-table">
-        <caption class="sr-only">Carrera al Premio Kindelan</caption>
-        <thead>
-            <tr>
-                <th class="num" scope="col">#</th>
-                <th scope="col">Jugador</th>
-                <th class="num" scope="col">OPS</th>
-                <th scope="col">Bono</th>
-                <th class="num" scope="col">Base</th>
-                <th class="num" scope="col">Bono</th>
-                <th class="num" scope="col">Eq.</th>
-                <th class="num" scope="col">Total</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for e in kindelan %}
-            <tr class="{% if loop.index == 1 %}mvp-leader mvp-gold{% elif loop.index == 2 %}mvp-silver{% elif loop.index == 3 %}mvp-bronze{% endif %}">
-                <td class="num mvp-rank">{{ loop.index }}</td>
-                <td>
-                    {{ logo_img(e.team_logo, css_class='inline-logo-sm', alt=e.team_short) }}
-                    <a href="{{ url_for('players.player', player_id=e.player_id) }}">{{ e.player_name }}</a>
-                </td>
-                <td class="num">{{ "%.3f"|format(e.key_stat_value) }}</td>
-                <td class="bonus-cell">
-                    {% for b in e.bonuses %}{{ bonus_pill(b) }}{% endfor %}
-                </td>
-                <td class="num">{{ "%.1f"|format(e.base) }}</td>
-                <td class="num">{{ "+" if e.bonus_total }}{{ e.bonus_total }}</td>
-                <td class="num">&times;{{ "%.2f"|format(e.multiplier) }}</td>
-                <td class="num stat-num"><strong>{{ "%.1f"|format(e.final) }}</strong></td>
-            </tr>
+    {% call tab_group(tab_defs, aria_label='Premios') %}
+        {% for r in races %}
+        <section class="tab-pane" id="{{ r.id }}" role="tabpanel"
+                 {% if r.id != ns.active %}hidden{% endif %}>
+            {% if r.subtitle %}<h2 class="award-title">{{ r.label }} <span class="award-subtitle">— {{ r.subtitle }}</span></h2>{% endif %}
+            <div class="award-blurb text-muted">{{ r.blurb }}</div>
+            {% if r.entries %}
+                {{ mvp_table(r.entries, r.key_label, r.key_fmt) }}
+            {% else %}
+                {{ empty_state('Sin clasificados aun para este premio.') }}
+            {% endif %}
+        </section>
         {% endfor %}
-        </tbody>
-    </table>
+    {% endcall %}
 </div>
-{% endif %}
 
-{% if lazo %}
-<div class="panel">
-    <h2>Premio Lazo</h2>
-    <p class="text-muted panel-sub">Mejor lanzador &mdash; (10&minus;ERA)&times;10 + bono (SO/ERA/IP) + mult. equipo</p>
-    <table class="leaderboard stat-table mvp-table">
-        <caption class="sr-only">Carrera al Premio Lazo</caption>
-        <thead>
-            <tr>
-                <th class="num" scope="col">#</th>
-                <th scope="col">Jugador</th>
-                <th class="num" scope="col">ERA</th>
-                <th scope="col">Bono</th>
-                <th class="num" scope="col">Base</th>
-                <th class="num" scope="col">Bono</th>
-                <th class="num" scope="col">Eq.</th>
-                <th class="num" scope="col">Total</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for e in lazo %}
-            <tr class="{% if loop.index == 1 %}mvp-leader mvp-gold{% elif loop.index == 2 %}mvp-silver{% elif loop.index == 3 %}mvp-bronze{% endif %}">
-                <td class="num mvp-rank">{{ loop.index }}</td>
-                <td>
-                    {{ logo_img(e.team_logo, css_class='inline-logo-sm', alt=e.team_short) }}
-                    <a href="{{ url_for('players.player', player_id=e.player_id) }}">{{ e.player_name }}</a>
-                </td>
-                <td class="num">{{ "%.2f"|format(e.key_stat_value) }}</td>
-                <td class="bonus-cell">
-                    {% for b in e.bonuses %}{{ bonus_pill(b) }}{% endfor %}
-                </td>
-                <td class="num">{{ "%.1f"|format(e.base) }}</td>
-                <td class="num">{{ "+" if e.bonus_total }}{{ e.bonus_total }}</td>
-                <td class="num">&times;{{ "%.2f"|format(e.multiplier) }}</td>
-                <td class="num stat-num"><strong>{{ "%.1f"|format(e.final) }}</strong></td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</div>
 {% endif %}
-
-</div>
 {% endblock %}

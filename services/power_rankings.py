@@ -5,6 +5,9 @@ import json
 from typing import Any
 
 from db import get_db
+from lib.scoring import POWER_RANKING_WEIGHTS, RECENT_FORM_LOOKBACK_WEEKS
+from lib.season import Phase
+from models import Team
 
 
 def _min_max(values: list[float]) -> list[float]:
@@ -30,110 +33,60 @@ def compute_power_rankings(week_num: int) -> list[dict[str, Any]]:
         Strength of schedule:19%
     """
     db = get_db()
-    team_ids = [r["id"] for r in db.execute(
-        "SELECT id FROM teams ORDER BY id"
-    ).fetchall()]
+    team_ids = [t.id for t in Team.all()]
 
-    # --- Query 1: Overall W/L/RS/RA through week_num ---
-    records = db.execute("""
-        SELECT t.id as team_id,
-            COALESCE(SUM(CASE WHEN (s.home_team_id=t.id AND g.home_runs>g.away_runs)
-                OR (s.away_team_id=t.id AND g.away_runs>g.home_runs) THEN 1 ELSE 0 END), 0) as wins,
-            COALESCE(SUM(CASE WHEN (s.home_team_id=t.id AND g.home_runs<g.away_runs)
-                OR (s.away_team_id=t.id AND g.away_runs<g.home_runs) THEN 1 ELSE 0 END), 0) as losses,
-            COALESCE(SUM(CASE WHEN s.home_team_id=t.id THEN g.home_runs
-                WHEN s.away_team_id=t.id THEN g.away_runs ELSE 0 END), 0) as rs,
-            COALESCE(SUM(CASE WHEN s.home_team_id=t.id THEN g.away_runs
-                WHEN s.away_team_id=t.id THEN g.home_runs ELSE 0 END), 0) as ra,
-            COUNT(g.id) as gp
-        FROM teams t
-        LEFT JOIN schedule s ON (s.home_team_id=t.id OR s.away_team_id=t.id)
-            AND s.phase='regular' AND s.week_num <= ?
-        LEFT JOIN games g ON g.schedule_id=s.id
-        GROUP BY t.id
-    """, (week_num,)).fetchall()
-    rec = {r["team_id"]: dict(r) for r in records}
+    # --- Team records (overall + recent form) via Team model batch methods
+    rec = Team.records_all(through_week=week_num, phase=Phase.REGULAR)
+    recent_start = max(1, week_num - (RECENT_FORM_LOOKBACK_WEEKS - 1))
+    rec_recent = Team.records_for_weeks(recent_start, week_num, phase=Phase.REGULAR)
 
-    # --- Query 2: Recent 5-week W/L ---
-    recent_start = max(1, week_num - 4)
-    recent = db.execute("""
-        SELECT t.id as team_id,
-            COALESCE(SUM(CASE WHEN (s.home_team_id=t.id AND g.home_runs>g.away_runs)
-                OR (s.away_team_id=t.id AND g.away_runs>g.home_runs) THEN 1 ELSE 0 END), 0) as wins,
-            COALESCE(SUM(CASE WHEN (s.home_team_id=t.id AND g.home_runs<g.away_runs)
-                OR (s.away_team_id=t.id AND g.away_runs<g.home_runs) THEN 1 ELSE 0 END), 0) as losses
-        FROM teams t
-        LEFT JOIN schedule s ON (s.home_team_id=t.id OR s.away_team_id=t.id)
-            AND s.phase='regular' AND s.week_num BETWEEN ? AND ?
-        LEFT JOIN games g ON g.schedule_id=s.id
-        GROUP BY t.id
-    """, (recent_start, week_num)).fetchall()
-    rec_recent = {r["team_id"]: dict(r) for r in recent}
+    # --- Team batting/pitching aggregates via Team.team_stats_all
+    bat_lines, pit_lines = Team.team_stats_all(
+        through_week=week_num, phase=Phase.REGULAR,
+    )
 
-    # --- Query 3: Team batting aggregates ---
-    batting = db.execute("""
-        SELECT bs.team_id,
-            SUM(bs.AB) as AB, SUM(bs.H) as H, SUM(bs.HR) as HR, SUM(bs.RBI) as RBI
-        FROM batting_stats bs
-        JOIN games g ON bs.game_id = g.id
-        JOIN schedule s ON g.schedule_id = s.id
-        WHERE s.phase='regular' AND s.week_num <= ?
-        GROUP BY bs.team_id
-    """, (week_num,)).fetchall()
-    bat = {r["team_id"]: dict(r) for r in batting}
-
-    # --- Query 4: Team pitching aggregates ---
-    pitching = db.execute("""
-        SELECT ps.team_id,
-            SUM(ps.IP_outs) as IP_outs, SUM(ps.ER) as ER, SUM(ps.SO) as SO
-        FROM pitching_stats ps
-        JOIN games g ON ps.game_id = g.id
-        JOIN schedule s ON g.schedule_id = s.id
-        WHERE s.phase='regular' AND s.week_num <= ?
-        GROUP BY ps.team_id
-    """, (week_num,)).fetchall()
-    pit = {r["team_id"]: dict(r) for r in pitching}
-
-    # --- Query 5: Matchups for strength of schedule ---
+    # --- Matchups for strength of schedule (opponent-relative, no shared shape)
     matchups = db.execute("""
         SELECT s.home_team_id, s.away_team_id
         FROM schedule s JOIN games g ON g.schedule_id = s.id
-        WHERE s.phase='regular' AND s.week_num <= ?
-    """, (week_num,)).fetchall()
+        WHERE s.phase = ? AND s.week_num <= ?
+    """, (Phase.REGULAR, week_num)).fetchall()
 
     # Build raw metrics per team
     raw: dict[int, dict[str, float]] = {}
     for tid in team_ids:
-        r = rec.get(tid, {"wins": 0, "losses": 0, "rs": 0, "ra": 0, "gp": 0})
-        gp = max(r["gp"], 1)
-        win_pct = r["wins"] / max(r["wins"] + r["losses"], 1)
+        tr = rec.get(tid)
+        gp = max(tr.games, 1) if tr else 1
+        win_pct = tr.pct_float if tr else 0.0
 
-        rr = rec_recent.get(tid, {"wins": 0, "losses": 0})
-        recent_pct = rr["wins"] / max(rr["wins"] + rr["losses"], 1)
+        rr = rec_recent.get(tid)
+        recent_pct = rr.pct_float if rr else 0.0
 
-        run_diff = (r["rs"] - r["ra"]) / gp
+        run_diff = tr.diff / gp if tr else 0.0
 
-        b = bat.get(tid, {"AB": 0, "H": 0, "HR": 0, "RBI": 0})
-        ab = max(b["AB"], 1)
-        avg = b["H"] / ab
-        hr_rate = b["HR"] / ab
-        rbi_rate = b["RBI"] / ab
+        bl = bat_lines.get(tid)
+        ab = max(bl.AB, 1) if bl else 1
+        avg = bl.AVG if bl else 0.0
+        hr_rate = (bl.HR / ab) if bl else 0.0
+        rbi_rate = (bl.RBI / ab) if bl else 0.0
 
-        p = pit.get(tid, {"IP_outs": 0, "ER": 0, "SO": 0})
-        ip_outs = max(p["IP_outs"], 1)
-        era = (p["ER"] * 27) / ip_outs  # 9 innings = 27 outs
+        pl = pit_lines.get(tid)
+        ip_outs = max(pl.IP_outs, 1) if pl else 1
+        era = pl.ERA if pl else 0.0
         era_inv = 1.0 / max(era, 0.50)
-        so_rate = p["SO"] / ip_outs
+        so_rate = (pl.SO / ip_outs) if pl else 0.0
 
         # SOS: average win% of opponents faced
         opp_pcts: list[float] = []
         for m in matchups:
+            opp_id = None
             if m["home_team_id"] == tid:
-                opp = rec.get(m["away_team_id"], {"wins": 0, "losses": 0})
-                opp_pcts.append(opp["wins"] / max(opp["wins"] + opp["losses"], 1))
+                opp_id = m["away_team_id"]
             elif m["away_team_id"] == tid:
-                opp = rec.get(m["home_team_id"], {"wins": 0, "losses": 0})
-                opp_pcts.append(opp["wins"] / max(opp["wins"] + opp["losses"], 1))
+                opp_id = m["home_team_id"]
+            if opp_id is not None:
+                opp = rec.get(opp_id)
+                opp_pcts.append(opp.pct_float if opp else 0.0)
         sos = sum(opp_pcts) / max(len(opp_pcts), 1)
 
         raw[tid] = {
@@ -155,10 +108,7 @@ def compute_power_rankings(week_num: int) -> list[dict[str, Any]]:
     norm_sos = _min_max([raw[t]["sos"] for t in order])
 
     # Weighted composite score with per-component breakdown
-    WEIGHTS = {
-        "win_pct": 0.10, "recent": 0.19, "run_diff": 0.14,
-        "batting": 0.19, "pitching": 0.19, "sos": 0.19,
-    }
+    WEIGHTS = POWER_RANKING_WEIGHTS
     scores: dict[int, float] = {}
     components: dict[int, dict[str, float]] = {}
     for i, tid in enumerate(order):

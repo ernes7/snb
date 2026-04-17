@@ -16,7 +16,7 @@ Follow `flask-sqlite-engineering-principles.md`. Key rules:
 - Max 300 lines per file, single responsibility
 - Type hints everywhere, Blueprints for every feature
 - Component-based Jinja2 macros (no copy-paste HTML)
-- Fat models / thin views — routes are glue, logic in services
+- Fat models / thin views — routes are glue, domain logic lives in `models/` (queries rooted on one entity) and `services/` (cross-entity business rules)
 - SQLite: WAL mode, `PRAGMA foreign_keys=ON`, short write transactions
 - **Never DELETE database rows when refactoring UI** — modify queries/templates instead
 
@@ -42,15 +42,23 @@ Torneo/
 │   ├── weekly/                   # /weekly, /weekly/<week_num>
 │   └── periodico/                # /periodico (newspaper "En Tres y Dos")
 ├── services/
-│   ├── standings.py              # get_standings(), get_all_teams()
+│   ├── standings.py              # get_standings()
 │   ├── player_stats.py           # get_all_batting_lines(), get_all_pitching_lines() — shared aggregates
 │   ├── weekly.py                 # weekly summaries, tweets, predictions, game picks
 │   ├── power_rankings.py         # compute_power_rankings()
 │   ├── game_import.py            # insert_game() + validate_game()
 │   └── attributes_import.py      # bulk_upsert()
+├── models/                       # Domain models — OOP layer over DB rows
+│   ├── base.py                   # RowModel (exposes sqlite3.Row columns as attrs)
+│   ├── team.py                   # Team + TeamRecord — records, aggregates, H2H, batch methods
+│   ├── player.py                 # Player — lines, logs, sparklines, draft, attrs
+│   ├── week.py                   # Week + WeekCompletion — weekly scopes
+│   └── game.py                   # Game + recent_games/week_games helpers
 ├── lib/
 │   ├── utils.py                  # format_ip() — Jinja2 global
-│   └── stats.py                  # BattingLine, PitchingLine — rate stat source of truth
+│   ├── stats.py                  # BattingLine, PitchingLine — rate stat source of truth
+│   ├── season.py                 # GAMES_PER_WEEK, TOTAL_WEEKS, Phase, week_game_range
+│   └── scoring.py                # MVP multipliers, analyst weights, power-ranking weights
 ├── templates/
 │   ├── base.html                 # Layout: sidebar, {% block content %}, {% block scripts %}
 │   ├── components/               # Reusable macros (see UI Components below)
@@ -101,6 +109,28 @@ Torneo/
 - **OBP is an approximation**: `(H + BB) / (AB + BB)` — we don't track HBP or SF. OPS is computed from unrounded OBP + SLG internally, so don't try to recompute it from the rounded `obp`/`slg` properties.
 - Services returning totals should return `BattingLine`/`PitchingLine` (or `None`), not dicts. Templates access `.AVG`, `.OPS`, `.ERA` via attribute syntax.
 - **Shared per-player aggregates** live in `services/player_stats.py`: `get_all_batting_lines()` / `get_all_pitching_lines()` return list-of-dicts with player/team identity fields plus all counting and rate stats merged in (dict form so the `leaderboard_table` macro's `p[key]` subscript access keeps working). Both `/leaders` and `/mvp-race` consume these — don't duplicate the aggregate SQL.
+
+## Domain Models — `models/`
+
+All entity-rooted queries live on the model, not in blueprint services. Routes call `Team.get()`, `Player.get_with_team()`, `Week(n).top_batters()` etc. Templates use attribute access (`team.name`, `stats.wins`) — `RowModel` wraps a `sqlite3.Row` and falls through attribute lookups to the row's columns, so existing templates work unchanged.
+
+**When adding a new aggregate**: add it to the relevant model, not to a blueprint service. If two models need it (e.g. "games played this week among these teams"), put it in `services/`.
+
+**Key entry points** (never duplicate these queries elsewhere):
+- `Team.get(short) / get_by_id(id) / all()` — fetch
+- `Team.record(through_week=, phase=) → TeamRecord` — W/L/RS/RA for one team
+- `Team.records_all(through_week=) / records_for_weeks(start, end)` — batch records dict
+- `Team.batting_totals(through_week=) / pitching_totals(through_week=) → BattingLine/PitchingLine`
+- `Team.team_stats_all(through_week=) → (dict[tid, BattingLine], dict[tid, PitchingLine])` — one-shot batch for power rankings + team_stats
+- `Team.h2h_vs(other) → TeamRecord` — head-to-head
+- `Team.roster_by_role()`, `.bat_leaders()`, `.pitch_leaders()`, `.errors_committed()`
+- `Player.get_with_team(id)`, `.batting_line()`, `.pitching_line()`, `.batting_log()`, `.pitching_log()`, `.batting_sparkline()`, `.pitching_sparkline()`, `.draft_info()`, `.attributes()`
+- `Player.all_with_attrs_and_overall()` — the `/jugadores` listing with computed OVR
+- `Week(n).game_range`, `.completion()`, `.top_batters()`, `.top_pitchers()`; `Week.latest_with_games()`
+- `Game.get(id)`, `.batting_lines()`, `.pitching_lines()`, `.is_mercy_rule`
+- `models.game.recent_games(limit)` / `week_games(week_num)` — pre-joined game rows with pitcher W-L-SV tallies (consolidates the correlated-subquery pattern)
+
+`services/standings.py::get_standings()` is the canonical standings computation (tiebreakers live there, not on `Team`). All blueprints that need "records with GB column" call it.
 
 ## Database Schema
 

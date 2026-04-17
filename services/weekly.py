@@ -6,53 +6,30 @@ import sqlite3
 from typing import Any
 
 from db import get_db
+from lib.season import Phase, week_game_range
+from lib.scoring import (
+    ANALYST_WEIGHTS,
+    GOTW_QUALITY_WEIGHT,
+    HATE_BIAS_BOOST,
+    HATE_BIAS_PENALTY,
+)
 from lib.utils import format_ip
 
 
-def get_week_games(week_num: int) -> list[sqlite3.Row]:
-    """Get all game results for a given week (4 games per week)."""
-    db = get_db()
-    start = (week_num - 1) * 4 + 1
-    end = week_num * 4
-    return db.execute("""
-        SELECT g.*, s.game_num,
-            ht.short_name as home_short, ht.name as home_name,
-            ht.color_primary as home_color, ht.logo_file as home_logo,
-            at.short_name as away_short, at.name as away_name,
-            at.color_primary as away_color, at.logo_file as away_logo,
-            wp.name as wp_name, lp.name as lp_name, sp.name as sv_name,
-            (SELECT SUM(ps.W) FROM pitching_stats ps
-             JOIN games g2 ON ps.game_id = g2.id
-             WHERE ps.player_id = g.winning_pitcher_id AND g2.id <= g.id) as wp_w,
-            (SELECT SUM(ps.L) FROM pitching_stats ps
-             JOIN games g2 ON ps.game_id = g2.id
-             WHERE ps.player_id = g.winning_pitcher_id AND g2.id <= g.id) as wp_l,
-            (SELECT SUM(ps.W) FROM pitching_stats ps
-             JOIN games g2 ON ps.game_id = g2.id
-             WHERE ps.player_id = g.losing_pitcher_id AND g2.id <= g.id) as lp_w,
-            (SELECT SUM(ps.L) FROM pitching_stats ps
-             JOIN games g2 ON ps.game_id = g2.id
-             WHERE ps.player_id = g.losing_pitcher_id AND g2.id <= g.id) as lp_l,
-            (SELECT SUM(ps.SV) FROM pitching_stats ps
-             JOIN games g2 ON ps.game_id = g2.id
-             WHERE ps.player_id = g.save_pitcher_id AND g2.id <= g.id) as sv_count
-        FROM games g
-        JOIN schedule s ON g.schedule_id = s.id
-        JOIN teams ht ON s.home_team_id = ht.id
-        JOIN teams at ON s.away_team_id = at.id
-        LEFT JOIN players wp ON g.winning_pitcher_id = wp.id
-        LEFT JOIN players lp ON g.losing_pitcher_id = lp.id
-        LEFT JOIN players sp ON g.save_pitcher_id = sp.id
-        WHERE s.phase = 'regular' AND s.game_num BETWEEN ? AND ?
-        ORDER BY s.game_num
-    """, (start, end)).fetchall()
+def get_week_games(week_num: int) -> list[dict]:
+    """Get all game results for a given week (4 games per week).
+
+    Delegates to the shared `models.game.week_games` helper so the same
+    query + pitcher-credit rollup is used by both weekly and main pages.
+    """
+    from models.game import week_games
+    return week_games(week_num)
 
 
 def get_week_top_batters(week_num: int, limit: int = 5) -> list[sqlite3.Row]:
     """Top batters for the week by a composite score (H + 2*HR + RBI)."""
     db = get_db()
-    start = (week_num - 1) * 4 + 1
-    end = week_num * 4
+    start, end = week_game_range(week_num)
     return db.execute("""
         SELECT p.id, p.name, t.short_name,
             SUM(bs.AB) as AB, SUM(bs.H) as H, SUM(bs.HR) as HR,
@@ -77,8 +54,7 @@ def get_week_top_batters(week_num: int, limit: int = 5) -> list[sqlite3.Row]:
 def get_week_top_pitchers(week_num: int, limit: int = 5) -> list[sqlite3.Row]:
     """Top pitchers for the week by composite score (IP_outs + 2*SO - 3*ER)."""
     db = get_db()
-    start = (week_num - 1) * 4 + 1
-    end = week_num * 4
+    start, end = week_game_range(week_num)
     return db.execute("""
         SELECT p.id, p.name, t.short_name,
             SUM(ps.IP_outs) as IP_outs, SUM(ps.H) as H,
@@ -294,16 +270,6 @@ def _get_h2h_record(
     return a_wins, b_wins
 
 
-# Analyst personality weights: (fav_bias, rankings, pitching, h2h)
-# Higher fav_bias = more likely to pick favorite regardless
-# Sum doesn't need to be 1.0 — we compare home_score vs away_score
-_ANALYST_WEIGHTS: dict[int, dict[str, float]] = {
-    1: {"fav": 0.40, "rank": 0.20, "pitch": 0.25, "h2h": 0.15},  # Panfilo: pitcher + h2h
-    2: {"fav": 0.45, "rank": 0.25, "pitch": 0.15, "h2h": 0.15},  # Chequera: heart + rankings
-    3: {"fav": 0.35, "rank": 0.25, "pitch": 0.25, "h2h": 0.15},  # Facundo: methodical, pitching
-}
-
-
 def generate_game_picks(week_num: int) -> list[dict[str, Any]]:
     """Generate analyst winner picks for a week's games.
 
@@ -354,7 +320,7 @@ def generate_game_picks(week_num: int) -> list[dict[str, Any]]:
         a_h2h_score = h2h_aw / h2h_total if h2h_total else 0.5
 
         for a in analysts:
-            w = _ANALYST_WEIGHTS.get(a["id"], _ANALYST_WEIGHTS[1])
+            w = ANALYST_WEIGHTS.get(a["id"], ANALYST_WEIGHTS[1])
 
             # --- Factor 1: Favorite/hate bias (0-1 scale) ---
             # When fav is playing, always pick fav (1.0 vs 0.0)
@@ -368,8 +334,8 @@ def generate_game_picks(week_num: int) -> list[dict[str, Any]]:
                 h_fav_score = 1.0 if a["fav"] == home else 0.0
                 a_fav_score = 1.0 if a["fav"] == away else 0.0
             elif hate_in_game:
-                h_fav_score = 0.15 if a["hate"] == home else 0.85
-                a_fav_score = 0.15 if a["hate"] == away else 0.85
+                h_fav_score = HATE_BIAS_PENALTY if a["hate"] == home else HATE_BIAS_BOOST
+                a_fav_score = HATE_BIAS_PENALTY if a["hate"] == away else HATE_BIAS_BOOST
 
             # Weighted total
             h_total = (w["fav"] * h_fav_score + w["rank"] * h_rank_score
@@ -434,7 +400,7 @@ def pick_game_of_week(week_num: int) -> int | None:
         a_rank = rank_map.get(g["away_team_id"], 5)
         closeness_bonus = 8 - abs(h_rank - a_rank)
         quality_bonus = 16 - (h_rank + a_rank)
-        score = quality_bonus * 3 + closeness_bonus
+        score = quality_bonus * GOTW_QUALITY_WEIGHT + closeness_bonus
         if score > best_score:
             best_score = score
             best_id = g["schedule_id"]

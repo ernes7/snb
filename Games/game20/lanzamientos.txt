@@ -1,0 +1,8 @@
+CAV
+Gonzalez 49
+Duquesne 29
+Veliz 5
+
+LTU
+Rojas 43
+Medina 24

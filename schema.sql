@@ -39,10 +39,10 @@ CREATE TABLE players (
     full_name TEXT,
     position TEXT NOT NULL,
     bats_throws TEXT,
-    role TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('lineup','bench','rotation','bullpen')),
     lineup_order INTEGER,
     bullpen_role TEXT,
-    is_drafted INTEGER DEFAULT 0,
+    is_drafted INTEGER DEFAULT 0 CHECK (is_drafted IN (0,1)),
     photo_file TEXT
 );
 
@@ -61,8 +61,9 @@ CREATE TABLE schedule (
     week_num INTEGER,
     home_team_id INTEGER REFERENCES teams(id),
     away_team_id INTEGER REFERENCES teams(id),
-    phase TEXT DEFAULT 'regular',
-    series_game INTEGER
+    phase TEXT DEFAULT 'regular' CHECK (phase IN ('regular','playoffs','finals')),
+    series_game INTEGER,
+    CHECK (home_team_id <> away_team_id)
 );
 
 CREATE TABLE games (
@@ -218,3 +219,21 @@ CREATE TABLE pitching_stats (
     pitches INTEGER DEFAULT 0,
     UNIQUE(game_id, player_id)
 );
+
+-- -------------------------------------------------------------------
+-- Indexes on hot paths (queries that filter/join heavily on these cols)
+-- -------------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_batting_stats_game    ON batting_stats(game_id);
+CREATE INDEX IF NOT EXISTS idx_batting_stats_player  ON batting_stats(player_id);
+CREATE INDEX IF NOT EXISTS idx_batting_stats_team    ON batting_stats(team_id);
+CREATE INDEX IF NOT EXISTS idx_pitching_stats_game   ON pitching_stats(game_id);
+CREATE INDEX IF NOT EXISTS idx_pitching_stats_player ON pitching_stats(player_id);
+CREATE INDEX IF NOT EXISTS idx_pitching_stats_team   ON pitching_stats(team_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_week_phase   ON schedule(phase, week_num);
+CREATE INDEX IF NOT EXISTS idx_schedule_home         ON schedule(home_team_id);
+CREATE INDEX IF NOT EXISTS idx_schedule_away         ON schedule(away_team_id);
+CREATE INDEX IF NOT EXISTS idx_games_schedule        ON games(schedule_id);
+CREATE INDEX IF NOT EXISTS idx_analyst_tweets_week   ON analyst_tweets(week_num);
+CREATE INDEX IF NOT EXISTS idx_analyst_tweets_game   ON analyst_tweets(game_id);
+CREATE INDEX IF NOT EXISTS idx_tweet_replies_tweet   ON tweet_replies(tweet_id);
+CREATE INDEX IF NOT EXISTS idx_players_team          ON players(team_id);

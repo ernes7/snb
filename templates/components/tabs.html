@@ -1,0 +1,38 @@
+{# Reusable tabs component.
+
+Uses the existing `.toggle-bar` / `.toggle-btn` segmented-control styling
+and the generic `[data-tabs]` JS handler in app.js — no per-page script.
+
+Usage (with {% call %} — contents become the tab panes):
+
+    {% from 'components/tabs.html' import tab_group %}
+    {% call tab_group([
+        {'id': 'mvp-kindelan', 'label': 'Premio Kindelan'},
+        {'id': 'mvp-lazo',     'label': 'Premio Lazo',   'disabled': not lazo},
+    ]) %}
+        <section class="tab-pane" id="mvp-kindelan" role="tabpanel">...</section>
+        <section class="tab-pane" id="mvp-lazo" role="tabpanel" hidden>...</section>
+    {% endcall %}
+
+Each tab dict supports: id (required), label (required), disabled (optional).
+The first non-disabled tab is marked active. Panes must use `id` matching
+the tab id and `hidden` on all but the active one.
+#}
+{% macro tab_group(tabs, aria_label='Tabs') %}
+{% set ns = namespace(first=true) %}
+<div class="tabs-wrap" data-tabs>
+    <div class="toggle-bar" role="tablist" aria-label="{{ aria_label }}">
+    {% for t in tabs %}
+        {% set active = ns.first and not t.get('disabled') %}
+        <button class="toggle-btn{% if active %} active{% endif %}"
+                role="tab"
+                data-tab-target="{{ t.id }}"
+                aria-selected="{{ 'true' if active else 'false' }}"
+                aria-controls="{{ t.id }}"
+                {% if t.get('disabled') %}disabled{% endif %}>{{ t.label }}</button>
+        {% if active %}{% set ns.first = false %}{% endif %}
+    {% endfor %}
+    </div>
+    {{ caller() }}
+</div>
+{% endmacro %}

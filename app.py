@@ -1,7 +1,9 @@
 """Flask app factory for MVP Cuba 2011 Tournament Tracker."""
 from __future__ import annotations
 
-from flask import Flask, render_template
+import os
+
+from flask import Flask, render_template, url_for
 
 from config import configs
 from lib.utils import format_ip
@@ -15,11 +17,33 @@ def create_app(config_name: str = 'default') -> Flask:
 
     database.init_app(app)
     app.jinja_env.globals['format_ip'] = format_ip
+    _register_static_versioning(app)
 
     register_blueprints(app)
     register_error_handlers(app)
 
     return app
+
+
+def _register_static_versioning(app: Flask) -> None:
+    """Append `?v=<mtime>` to static asset URLs so long-cached CSS/JS
+    invalidates as soon as the file changes on disk.
+
+    Pairs with `SEND_FILE_MAX_AGE_DEFAULT` — without versioning, a 7-day
+    cache header means clients never see CSS/JS edits until they expire.
+    """
+    @app.url_defaults
+    def _inject_static_version(endpoint: str, values: dict) -> None:
+        if endpoint != 'static' or 'v' in values:
+            return
+        filename = values.get('filename')
+        if not filename:
+            return
+        path = os.path.join(app.static_folder or '', filename)
+        try:
+            values['v'] = int(os.path.getmtime(path))
+        except OSError:
+            pass
 
 
 def register_blueprints(app: Flask) -> None:
@@ -33,6 +57,7 @@ def register_blueprints(app: Flask) -> None:
     from blueprints.playoffs import playoffs_bp
     from blueprints.leaders import leaders_bp
     from blueprints.team_stats import team_stats_bp
+    from blueprints.versus import versus_bp
     from blueprints.mvp_race import mvp_race_bp
     from blueprints.antesala import antesala_bp
     from blueprints.weekly import weekly_bp
@@ -47,6 +72,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(playoffs_bp)
     app.register_blueprint(leaders_bp)
     app.register_blueprint(team_stats_bp)
+    app.register_blueprint(versus_bp)
     app.register_blueprint(mvp_race_bp)
     app.register_blueprint(antesala_bp)
     app.register_blueprint(weekly_bp)

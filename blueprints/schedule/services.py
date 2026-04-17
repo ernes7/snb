@@ -28,19 +28,23 @@ def get_schedule_games() -> list[sqlite3.Row]:
     """).fetchall()
 
 
+# (upper_exclusive_pitches, games_to_rest) — first match wins.
+PITCH_REST_LADDER: tuple[tuple[int, int], ...] = (
+    (10, 0),
+    (20, 1),
+    (30, 2),
+    (40, 3),
+    (50, 4),
+)
+PITCH_REST_MAX = 5
+
+
 def _pitches_to_rest(pitches: int) -> int:
     """Convert pitch count to mandatory games to miss."""
-    if pitches < 10:
-        return 0
-    if pitches < 20:
-        return 1
-    if pitches < 30:
-        return 2
-    if pitches < 40:
-        return 3
-    if pitches < 50:
-        return 4
-    return 5
+    for cap, rest in PITCH_REST_LADDER:
+        if pitches < cap:
+            return rest
+    return PITCH_REST_MAX
 
 
 def get_unavailable_pitchers() -> dict[str, list[dict[str, Any]]]:

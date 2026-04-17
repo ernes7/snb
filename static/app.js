@@ -78,6 +78,31 @@
         });
     }
 
+    /* ── Reusable tabs ──
+       Driven by the `tab_group` Jinja macro in templates/components/tabs.html.
+       Any `[data-tabs]` container with `.toggle-btn[data-tab-target]` buttons
+       + matching `.tab-pane[id]` panes is picked up automatically.
+    */
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('[data-tabs]').forEach(function (root) {
+            var btns = root.querySelectorAll('.toggle-btn[data-tab-target]');
+            btns.forEach(function (btn) {
+                if (btn.disabled) return;
+                btn.addEventListener('click', function () {
+                    var targetId = btn.getAttribute('data-tab-target');
+                    btns.forEach(function (b) {
+                        var active = b === btn;
+                        b.setAttribute('aria-selected', active ? 'true' : 'false');
+                        b.classList.toggle('active', active);
+                    });
+                    root.querySelectorAll('.tab-pane').forEach(function (pane) {
+                        pane.hidden = pane.id !== targetId;
+                    });
+                });
+            });
+        });
+    });
+
     /* ── Reusable sortable table ── */
     window.initSortableTable = function (table) {
         if (!table) return;

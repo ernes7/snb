@@ -1,4 +1,6 @@
-{# Owner name badge with color styling #}
-{% macro owner_badge(owner) %}
-<span class="owner-{{ owner|lower }}">{{ owner }}</span>
+{# Owner name badge with color styling. Pass short=True for compact initials
+   (EM for Ernesto, RJ for Junior) — useful in dense tables like /draft. #}
+{% macro owner_badge(owner, short=False) %}
+{%- set initials = {'Ernesto': 'EM', 'Junior': 'RJ'} -%}
+<span class="owner-{{ owner|lower }}">{{ initials.get(owner, owner) if short else owner }}</span>
 {% endmacro %}

@@ -1,44 +1,36 @@
-"""Players blueprint routes."""
+"""Players blueprint routes — model-backed."""
 from __future__ import annotations
 
 from flask import abort, render_template
 
+from models import Player
+
 from . import players_bp
-from .services import get_player, get_player_attrs, get_player_draft, \
-    get_batting_log, get_batting_totals, get_pitching_log, get_pitching_totals, \
-    get_all_players_with_attrs
-from lib.stats import BattingLine
 
 
 @players_bp.route('/jugadores')
 def all_players() -> str:
-    players = get_all_players_with_attrs()
-    return render_template('all_players.html', players=players)
+    return render_template('all_players.html',
+                           players=Player.all_with_attrs_and_overall())
 
 
 @players_bp.route('/player/<int:player_id>')
 def player(player_id: int) -> str:
-    p = get_player(player_id)
+    p = Player.get_with_team(player_id)
     if not p:
         abort(404)
 
-    attrs = get_player_attrs(player_id)
-    draft = get_player_draft(player_id)
-    bat_games = get_batting_log(player_id)
-    bat_totals = get_batting_totals(player_id)
-    pitch_games = get_pitching_log(player_id)
-    pitch_totals = get_pitching_totals(player_id)
-
-    bat_spark = []
-    for g in (bat_games or []):
-        bl = BattingLine.from_row(g)
-        bat_spark.append(round(bl.OPS, 3) if bl.AB > 0 else 0)
-    pitch_spark = [
-        round(g['ER'] * 27 / g['IP_outs'], 2) if g['IP_outs'] > 0 else 0
-        for g in pitch_games
-    ] if pitch_games else []
-
-    return render_template('player.html', player=p, draft=draft, attrs=attrs,
-                           bat_games=bat_games, bat_totals=bat_totals,
-                           pitch_games=pitch_games, pitch_totals=pitch_totals,
-                           bat_spark=bat_spark, pitch_spark=pitch_spark)
+    bat_games = p.batting_log()
+    pitch_games = p.pitching_log()
+    return render_template(
+        'player.html',
+        player=p,
+        draft=p.draft_info(),
+        attrs=p.attributes(),
+        bat_games=bat_games,
+        bat_totals=p.batting_line(),
+        pitch_games=pitch_games,
+        pitch_totals=p.pitching_line(),
+        bat_spark=p.batting_sparkline(),
+        pitch_spark=p.pitching_sparkline(),
+    )

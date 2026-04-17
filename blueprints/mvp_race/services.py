@@ -28,15 +28,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from lib.scoring import (
+    KINDELAN_MIN_PA_PER_GAME,
+    LAZO_MIN_IP_OUTS_PER_GAME,
+    MVP_GRADED_POINTS,
+    MVP_RACE_DISPLAY_LIMIT,
+    MVP_TEAM_MULTIPLIER,
+)
 from services.player_stats import get_all_batting_lines, get_all_pitching_lines
 from services.standings import get_standings
 
-TEAM_MULTIPLIER: dict[int, float] = {
-    1: 1.06, 2: 1.04, 3: 1.02, 4: 1.00,
-    5: 0.98, 6: 0.96, 7: 0.94, 8: 0.92,
-}
-
-GRADED_POINTS = [5, 4, 3, 2, 1]  # Points for ranks 1..5
+# Local aliases kept so existing references below stay readable.
+TEAM_MULTIPLIER = MVP_TEAM_MULTIPLIER
+GRADED_POINTS = MVP_GRADED_POINTS
 
 
 @dataclass(frozen=True)
@@ -88,18 +92,26 @@ def _grade_ranks(
     key: str,
     tiebreak: str,
     reverse: bool = True,
+    tiebreak_reverse: bool = False,
 ) -> dict[int, tuple[int, int]]:
     """Rank entries by `key`; return {entry_id: (rank, points)} for top 5.
 
-    Ties on `key` are broken by `tiebreak` (always most-is-better — AB
-    for batters, IP_outs for pitchers) to match the `/leaders` page.
+    `reverse=True` → higher `key` wins (default: AVG, HR, OPS, etc.).
+    `reverse=False` → lower `key` wins (ERA).
+
+    `tiebreak_reverse=False` (default) → more tiebreak wins ties
+        (rate stats like AVG — a large sample is more impressive).
+    `tiebreak_reverse=True` → less tiebreak wins ties
+        (counting stats like H/HR/RBI — fewer AB for same count = more efficient).
+
     Final fallback on player id keeps the sort deterministic. Entries
     outside the top 5 are absent from the return dict.
     """
+    tb_sign = 1 if tiebreak_reverse else -1  # -AB (more AB first) vs +AB (less first)
     if reverse:
-        ordered = sorted(entries, key=lambda e: (-e[key], -e[tiebreak], e["id"]))
+        ordered = sorted(entries, key=lambda e: (-e[key], tb_sign * e[tiebreak], e["id"]))
     else:
-        ordered = sorted(entries, key=lambda e: (e[key], -e[tiebreak], e["id"]))
+        ordered = sorted(entries, key=lambda e: (e[key], tb_sign * e[tiebreak], e["id"]))
     out: dict[int, tuple[int, int]] = {}
     for idx, e in enumerate(ordered[:5]):
         rank = idx + 1
@@ -117,12 +129,14 @@ def compute_kindelan_race() -> list[RaceEntry]:
         team_games = games_by_tid.get(e["team_id"], 0)
         if team_games == 0:
             continue
-        if (e["AB"] + e["BB"]) >= 2.0 * team_games:
+        if (e["AB"] + e["BB"]) >= KINDELAN_MIN_PA_PER_GAME * team_games:
             qualified.append(e)
 
-    avg_grades = _grade_ranks(qualified, "AVG", tiebreak="AB")
-    hr_grades = _grade_ranks(qualified, "HR", tiebreak="AB")
-    rbi_grades = _grade_ranks(qualified, "RBI", tiebreak="AB")
+    # AVG is a rate stat: more AB = more impressive on ties.
+    # HR/RBI are counting stats: fewer AB per same count = more efficient.
+    avg_grades = _grade_ranks(qualified, "AVG", tiebreak="AB", tiebreak_reverse=False)
+    hr_grades  = _grade_ranks(qualified, "HR",  tiebreak="AB", tiebreak_reverse=True)
+    rbi_grades = _grade_ranks(qualified, "RBI", tiebreak="AB", tiebreak_reverse=True)
 
     results: list[RaceEntry] = []
     for e in qualified:
@@ -151,7 +165,7 @@ def compute_kindelan_race() -> list[RaceEntry]:
             multiplier=mult, final=final,
         ))
 
-    return sorted(results, key=lambda r: (-r.final, r.player_id))[:25]
+    return sorted(results, key=lambda r: (-r.final, r.player_id))[:MVP_RACE_DISPLAY_LIMIT]
 
 
 def compute_lazo_race() -> list[RaceEntry]:
@@ -164,7 +178,7 @@ def compute_lazo_race() -> list[RaceEntry]:
         team_games = games_by_tid.get(e["team_id"], 0)
         if team_games == 0:
             continue
-        if e["IP_outs"] >= 2.4 * team_games:
+        if e["IP_outs"] >= LAZO_MIN_IP_OUTS_PER_GAME * team_games:
             qualified.append(e)
 
     so_grades = _grade_ranks(qualified, "SO", tiebreak="IP_outs", reverse=True)
@@ -198,4 +212,4 @@ def compute_lazo_race() -> list[RaceEntry]:
             multiplier=mult, final=final,
         ))
 
-    return sorted(results, key=lambda r: (-r.final, r.player_id))[:25]
+    return sorted(results, key=lambda r: (-r.final, r.player_id))[:MVP_RACE_DISPLAY_LIMIT]

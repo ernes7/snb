@@ -1,6 +1,11 @@
 {% extends "base.html" %}
-{% from 'components/team_link.html' import team_link %}
+{% from 'components/logo_img.html' import logo_img %}
 {% from 'components/owner_badge.html' import owner_badge %}
+
+{% macro team_logo_link(short_name, name, logo_file) -%}
+<a href="{{ url_for('teams.team', short=short_name) }}"
+   class="team-logo-only" title="{{ name }}">{{ logo_img(logo_file, css_class='inline-logo-md', alt=name) }}</a>
+{%- endmacro %}
 {% block title %}Draft - Serie Nacional{% endblock %}
 {% block content %}
 <h1>Draft</h1>
@@ -8,7 +13,7 @@
 <div class="bento">
 <div class="panel">
     <h2>Orden del Draft</h2>
-    <table class="stat-table">
+    <div class="table-scroll"><table class="stat-table">
         <caption class="sr-only">Orden del draft por equipo</caption>
         <thead>
             <tr><th class="num" scope="col">#</th><th scope="col">Equipo</th><th scope="col">Jugador</th><th class="num" scope="col">Pre</th><th class="num" scope="col">Post</th><th class="num" scope="col">Mejora</th></tr>
@@ -18,8 +23,8 @@
             {% set change = t.rank_pre_draft - t.rank_post_draft %}
             <tr>
                 <td class="num">{{ loop.index }}</td>
-                <td>{{ team_link(t.short_name, t.name, t.color_primary, t.logo_file) }}</td>
-                <td>{{ owner_badge(t.owner) }}</td>
+                <td>{{ team_logo_link(t.short_name, t.name, t.logo_file) }}</td>
+                <td>{{ owner_badge(t.owner, short=True) }}</td>
                 <td class="num">{{ t.rank_pre_draft }}</td>
                 <td class="num">{{ t.rank_post_draft }}</td>
                 <td class="num {% if change > 0 %}change-up{% elif change < 0 %}change-down{% else %}change-same{% endif %}">
@@ -28,11 +33,11 @@
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 </div>
 <div class="panel">
     <h2>Selecciones (24 picks)</h2>
-    <table class="stat-table">
+    <div class="table-scroll"><table class="stat-table">
         <caption class="sr-only">Selecciones del draft</caption>
         <thead>
             <tr><th class="num" scope="col">Pick</th><th class="num" scope="col">Rda</th><th scope="col">Equipo</th><th scope="col">Jugador</th><th scope="col">Pos</th></tr>
@@ -42,7 +47,7 @@
             <tr>
                 <td class="num">{{ p.pick_num }}</td>
                 <td class="num">{{ p.round }}</td>
-                <td>{{ team_link(p.short_name, p.team_name, p.color_primary, p.logo_file) }}</td>
+                <td>{{ team_logo_link(p.short_name, p.team_name, p.logo_file) }}</td>
                 <td>
                     {% if p.player_id %}
                     <a href="{{ url_for('players.player', player_id=p.player_id) }}" class="drafted">{{ p.player_name }}</a>
@@ -54,7 +59,7 @@
             </tr>
         {% endfor %}
         </tbody>
-    </table>
+    </table></div>
 </div>
 </div>
 {% endblock %}

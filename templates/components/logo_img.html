@@ -1,6 +1,20 @@
-{# Team/player logo image #}
+{# Team/player logo image. Sets intrinsic width/height when we know the
+   CSS-enforced size, so the browser reserves the box before the image
+   decodes — no layout shift on page load. #}
 {% macro logo_img(logo_file, css_class='inline-logo', alt='') %}
 {% if logo_file %}
-<img src="{{ url_for('static', filename='graphics/' + logo_file) }}" class="{{ css_class }}" alt="{{ alt }}">
+    {%- set dims = {
+        'inline-logo':    64,
+        'inline-logo-md': 32,
+        'inline-logo-sm': 16,
+        'team-logo':      56,
+        'sched-logo':     72,
+        'game-card-bg game-card-bg-left':  64,
+        'game-card-bg game-card-bg-right': 64,
+    } -%}
+    {%- set size = dims.get(css_class) -%}
+<img src="{{ url_for('static', filename='graphics/' + logo_file) }}"
+     class="{{ css_class }}" alt="{{ alt }}" loading="lazy" decoding="async"
+     {%- if size %} width="{{ size }}" height="{{ size }}"{% endif %}>
 {% endif %}
 {% endmacro %}
