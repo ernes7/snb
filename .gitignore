@@ -27,7 +27,8 @@ venv/
 Thumbs.db
 
 # Claude Code
-.claude/
+.claude/*
+!.claude/settings.json
 
 # Project artifacts
 *.xlsx
