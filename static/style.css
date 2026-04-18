@@ -2006,6 +2006,176 @@ form input:focus, form select:focus, form textarea:focus {
 }
 
 /* ============================================
+   Versus / Duelos
+   ============================================ */
+.versus-subtitle {
+    color: var(--text-secondary);
+    font-size: var(--text-sm);
+    margin: -4px 0 var(--space-3) 0;
+}
+.versus-panel { padding: var(--space-4); }
+
+.versus-matrix {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    margin: 0 auto;
+    background: var(--cream-50);
+}
+/* Neutralize inherited zebra/hover from global table rules */
+.versus-matrix tbody tr,
+.versus-matrix tbody tr:nth-child(even),
+.versus-matrix tbody tr:hover { background: transparent; }
+.versus-matrix tbody tr:nth-child(even):hover { background: transparent; }
+.versus-matrix th,
+.versus-matrix td {
+    width: calc(100% / 9);
+    aspect-ratio: 1 / 1;
+    text-align: center;
+    vertical-align: middle;
+    padding: 0;
+    border: 1px solid var(--border);
+    background: var(--white);
+}
+.versus-corner { background: transparent; border: 0; }
+
+/* Column headers: cream tile, team-colored top bar, large logo */
+.versus-head {
+    background: var(--cream-50);
+    position: relative;
+    padding: 4px !important;
+}
+.versus-matrix thead .versus-head::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--team-color, var(--navy-900));
+}
+/* Row headers: team-colored left bar */
+.versus-row-head { background: var(--cream-50); position: relative; padding: 4px !important; }
+.versus-row-head::before {
+    content: "";
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 4px;
+    background: var(--team-color, var(--navy-900));
+}
+.versus-logo-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+.versus-logo {
+    width: 78%;
+    height: 78%;
+    object-fit: contain;
+}
+
+/* Score cells: cream base, subtle tint for W/L, Barlow Condensed numbers */
+.versus-cell {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--navy-900);
+}
+.versus-cell .stat-num {
+    font-size: var(--text-xl);
+    line-height: 1;
+    color: inherit;
+}
+.versus-win { background: #e3ede2; }   /* pale sage */
+.versus-loss { background: #f4dfd9; }  /* pale rose */
+.versus-tie { background: var(--white); color: var(--text-secondary); }
+
+/* Self diagonal: solid navy block */
+.versus-self {
+    background: var(--navy-900);
+    border-color: var(--navy-900);
+}
+/* Same-owner: diagonal cream stripes */
+.versus-hatch {
+    background: repeating-linear-gradient(
+        45deg,
+        var(--cream-50) 0 8px,
+        var(--cream-200) 8px 10px
+    );
+}
+
+/* Owner quadrant divider */
+.versus-matrix th.versus-split,
+.versus-matrix td.versus-split { border-left: 2px solid var(--navy-900); }
+.versus-split-row > th,
+.versus-split-row > td { border-top: 2px solid var(--navy-900); }
+
+.versus-legend {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-5);
+    margin: var(--space-4) 0 0 0;
+    padding: var(--space-3) 0 0 0;
+    border-top: 1px solid var(--border);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+.versus-legend li { display: flex; align-items: center; gap: var(--space-2); }
+.versus-legend-swatch {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+}
+
+/* Innings differential table */
+.versus-inning-panel .table-scroll { overflow-x: auto; }
+.versus-innings {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+}
+.versus-innings th,
+.versus-innings td {
+    padding: var(--space-2) var(--space-3);
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+.versus-innings thead th {
+    background: var(--navy-900);
+    color: var(--white);
+    font-weight: 600;
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.versus-innings tbody th {
+    text-align: left;
+    border-left: 4px solid var(--team-color, var(--navy-900));
+    background: var(--white);
+}
+.versus-innings td:last-child {
+    background: var(--cream-100);
+    font-weight: 700;
+}
+.versus-innings tbody tr:hover td { background: var(--cream-50); }
+
+.versus-team-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-weight: 600;
+}
+
+/* Inning-diff heatmap cells — driven by inline --mag (0..1) */
+.diff-pos { background: rgba(46, 125, 50, calc(var(--mag, 0) * 0.55)); color: var(--green-600); }
+.diff-neg { background: rgba(198, 40, 40, calc(var(--mag, 0) * 0.55)); color: var(--red-700); }
+.diff-zero { color: var(--text-secondary); opacity: 0.6; }
+.diff-pos .stat-num,
+.diff-neg .stat-num { font-size: var(--text-lg); }
+
+/* ============================================
    Animations
    ============================================ */
 @keyframes fadeInUp {

@@ -236,12 +236,18 @@ save_game_tweets(game_id=N, tweets=[
 ])
 ```
 
+## Helper scripts
+
+- `python scripts/query.py "<SQL>"` — ad-hoc SQL runner against `torneo.db` with `sqlite3.Row` + pretty-print. Replacement for the missing `sqlite3` CLI on this machine. Flags: `--tables`, `--schema <table>`, `--limit N`. Reach for this instead of `python -c "import sqlite3; ..."` one-liners.
+- `python scripts/finalize_week.py N` — **use after all 4 games of week N are boxscored.** Runs `auto_generate_week(N+1)` (persists N rankings + N+1 picks + N+1 GotW), then prints POTW candidates, the rankings skeleton with `<-- BLANK` flags on every missing blurb, and paste-ready `save_weekly_awards` / `save_weekly_tweets` templates. Idempotent — re-running preserves any blurbs you've already saved (`auto_generate_week` merges blurbs by `team_id`).
+
 ## Weekly Content Workflow
 
 After all 4 games of week N are entered:
 
 ### Step 1: Generate weekly report
 Run `python weekly.py N` — prints results, standings, top performers, upcoming games with rankings.
+(Or jump straight to `python scripts/finalize_week.py N` which auto-runs the deterministic pieces first.)
 
 ### Step 2: Save weekly content
 - **POTW + Power Rankings**: `compute_power_rankings(N)` then `save_weekly_awards(N, potw_id, summary, rankings, game_of_week_id)`
@@ -252,23 +258,13 @@ Run `python weekly.py N` — prints results, standings, top performers, upcoming
 
 ### Step 3: Generate predictions for week N+1
 ```python
-from services.weekly import generate_game_picks, save_game_picks, pick_game_of_week
+from services.weekly import generate_game_picks, save_game_picks, save_game_of_week
 picks = generate_game_picks(N+1)  # weighted: fav bias > rankings > pitching > H2H
 save_game_picks(N+1, picks)
-gotw_sched_id = pick_game_of_week(N+1)  # closest power ranking matchup
-
-# pick_game_of_week() only COMPUTES — you must persist it yourself.
-# For past weeks save_weekly_awards(N, ...) does this. For N+1 there's no
-# POTW/rankings yet, so upsert weekly_awards directly with just the GotW:
-from db import get_db
-get_db().execute("""
-    INSERT INTO weekly_awards (week_num, game_of_week_id) VALUES (?, ?)
-    ON CONFLICT(week_num) DO UPDATE SET game_of_week_id = excluded.game_of_week_id
-""", (N+1, gotw_sched_id))
-get_db().commit()
+save_game_of_week(N+1)  # computes + persists, returns schedule_id
 ```
 
-Predictions show on `/schedule` — analyst avatars next to predicted winner, gold "Juego de la Semana" badge reads from `weekly_awards.game_of_week_id`. If the badge doesn't render for the upcoming week, the upsert above is what's missing. All weekly services live in `services/weekly.py` — there is no `blueprints/weekly/services.py`.
+Predictions show on `/schedule` — analyst avatars next to predicted winner, gold "Juego de la Semana" badge reads from `weekly_awards.game_of_week_id`. All weekly services live in `services/weekly.py` — there is no `blueprints/weekly/services.py`.
 
 ### Analyst prediction weights
 | Factor | Panfilo | Chequera | Facundo |

@@ -407,6 +407,24 @@ def pick_game_of_week(week_num: int) -> int | None:
     return best_id
 
 
+def save_game_of_week(week_num: int) -> int | None:
+    """Compute the Game of the Week for `week_num` and persist it.
+
+    Returns the schedule_id stored (or None if no ranking data yet — e.g.
+    calling this before any prior week has rankings).
+    """
+    gotw_id = pick_game_of_week(week_num)
+    if gotw_id is None:
+        return None
+    db = get_db()
+    db.execute("""
+        INSERT INTO weekly_awards (week_num, game_of_week_id) VALUES (?, ?)
+        ON CONFLICT(week_num) DO UPDATE SET game_of_week_id = excluded.game_of_week_id
+    """, (week_num, gotw_id))
+    db.commit()
+    return gotw_id
+
+
 def week_completion_status(week_num: int) -> dict[str, Any]:
     """Return how many games in a week have been played and box scored.
 
@@ -490,9 +508,21 @@ def auto_generate_week(week_num: int) -> dict[str, Any]:
 
     db = get_db()
 
-    # 1. Rankings for week_num - 1
+    # 1. Rankings for week_num - 1 — preserve any existing blurbs by team_id
     prev_week = week_num - 1
     rankings = compute_power_rankings(prev_week)
+    existing = db.execute(
+        "SELECT power_rankings FROM weekly_awards WHERE week_num = ?",
+        (prev_week,),
+    ).fetchone()
+    if existing and existing["power_rankings"]:
+        prior_blurbs = {
+            r["team_id"]: r.get("blurb")
+            for r in json.loads(existing["power_rankings"])
+        }
+        for r in rankings:
+            if prior_blurbs.get(r["team_id"]):
+                r["blurb"] = prior_blurbs[r["team_id"]]
     db.execute("""
         INSERT INTO weekly_awards (week_num, power_rankings)
         VALUES (?, ?)

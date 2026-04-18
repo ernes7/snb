@@ -12,7 +12,7 @@
         <tr>
             <th class="versus-corner" scope="col"><span class="sr-only">Equipo</span></th>
             {% for col in teams %}
-            <th scope="col" class="versus-head{% if loop.index == 4 %} versus-split{% endif %}" style="--team-color: {{ col.color_primary }};">
+            <th scope="col" class="versus-head{% if loop.index == 5 %} versus-split{% endif %}" style="--team-color: {{ col.color_primary }};">
                 <span class="versus-logo-wrap">{{ logo_img(col.logo_file, 'versus-logo', col.short_name) }}</span>
             </th>
             {% endfor %}
@@ -26,15 +26,15 @@
             </th>
             {% for col in teams %}
                 {% if row.id == col.id %}
-                    <td class="versus-self{% if loop.index == 4 %} versus-split{% endif %}" aria-label="mismo equipo"></td>
+                    <td class="versus-self{% if loop.index == 5 %} versus-split{% endif %}" aria-label="mismo equipo"></td>
                 {% elif row.owner == col.owner %}
-                    <td class="versus-hatch{% if loop.index == 4 %} versus-split{% endif %}" aria-label="no enfrentan"></td>
+                    <td class="versus-hatch{% if loop.index == 5 %} versus-split{% endif %}" aria-label="no enfrentan"></td>
                 {% else %}
                     {% set cell = matrix.get((row.id, col.id)) %}
                     {% set w = cell.w if cell else 0 %}
                     {% set l = cell.l if cell else 0 %}
                     {% set cls = 'versus-win' if w > l else ('versus-loss' if l > w else 'versus-tie') %}
-                    <td class="versus-cell {{ cls }}{% if loop.index == 4 %} versus-split{% endif %}" aria-label="{{ row.short_name }} {{ w }}-{{ l }} vs {{ col.short_name }}">
+                    <td class="versus-cell {{ cls }}{% if loop.index == 5 %} versus-split{% endif %}" aria-label="{{ row.short_name }} {{ w }}-{{ l }} vs {{ col.short_name }}">
                         <span class="stat-num">{{ w }}-{{ l }}</span>
                     </td>
                 {% endif %}
