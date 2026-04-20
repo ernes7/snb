@@ -183,7 +183,18 @@ A signature design pattern used across the app. Team logos are oversized and par
 - Font: Source Sans 3 600, `--text-base`.
 - Use for switching between stat categories (Batting / Pitching / Fielding).
 
-### 5.7 Badges & Tags
+### 5.7 Single-Use Visual Components
+
+These macros in `templates/components/` are design elements used in one page each. See CLAUDE.md for reusable functional components.
+
+| Macro | File | Purpose | Used in |
+|---|---|---|---|
+| `attr_bar(value, label, max)` | `attr_bar.html` | Horizontal fill bar, color-coded by tier (elite/good/avg/low) | `player.html` |
+| `game_score(home, away, ...)` | `game_score.html` | Score display with winner color highlight | game templates |
+| `owner_badge(owner, short)` | `owner_badge.html` | Owner name badge with color (supports initials mode) | `draft.html` |
+| `section_label(text)` | `section_label.html` | Semantic label span with `section-label` class | `team.html` |
+
+### 5.8 Badges & Tags
 - Border-radius: `6px`, padding `2px 8px`.
 - "FINAL": `--gray-400` bg, white text. Applied to all completed game cards.
 - Team tags: team accent color bg, white text.
@@ -218,6 +229,10 @@ This is a **consumption-only** interface. No forms, no editing, no CRUD, no live
 | `/leaders` | **Stat Leaders** | Leaderboards | Category tabs (AVG, HR, RBI, ERA, W, K, SB, OPS), top-20 tables, season selector, qualifier note |
 | `/antesala` | **Antesala** | Analyst show hub | Prediction cards (analyst picks + records), embedded posts, weekly poll results, hot takes feed |
 | `/weekly` | **Weekly Recap** | Week in review | POTW card, power rankings 1–16 with movement arrows, analyst tweet roundup, stat highlights |
+| `/versus` | **Versus** | Head-to-head matchup grid | All team-vs-team series records and results |
+| `/team-stats` | **Team Stats** | Team-level leaderboards | Tabbed batting/pitching team rankings |
+| `/mvp-race` | **MVP Race** | Season awards tracker | Premio Kindelan + Premio Lazo live standings with scoring breakdown |
+| `/periodico` | **Newspaper** | "En Tres y Dos" editions | Cream-paper serif layout, 6 editions (every 4 weeks) |
 
 ### Page Density Guidelines
 - Homepage: minimum 3 data widgets visible above the fold (standings + scores + leaders).

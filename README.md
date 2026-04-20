@@ -2,8 +2,6 @@
 
 Aplicacion web para seguir un torneo simulado de la Serie Nacional de Baseball de Cuba, jugado en **MVP Baseball 2005**. Dos duenos (Ernesto y Junior) controlan 4 equipos cada uno a traves de una temporada regular de 96 juegos, playoffs y mas.
 
-![Clasificacion](AppShots/dashboard.png)
-
 ## Funcionalidades
 
 - **Clasificacion** — Tabla de posiciones en tiempo real con juegos recientes
@@ -15,20 +13,6 @@ Aplicacion web para seguir un torneo simulado de la Serie Nacional de Baseball d
 - **Lideres** — Lideres estadisticos de bateo (AVG, HR, CI) y pitcheo (ERA, SO, PCL)
 - **Antesala** — Show pre-juego con 4 analistas, predicciones y comentarios
 - **Resumen Semanal** — Jugador de la semana, Power Rankings de Tele Rebelde y tweets de analistas
-
-## Capturas
-
-| Calendario | Box Score |
-|:---:|:---:|
-| ![Calendario](AppShots/calendar.png) | ![Box Score](AppShots/boxscore.png) |
-
-| Jugador | Draft |
-|:---:|:---:|
-| ![Jugador](AppShots/player.png) | ![Draft](AppShots/draft.png) |
-
-| Resumen Semanal |
-|:---:|
-| ![Semanal](AppShots/weekly.png) |
 
 ## Equipos
 
@@ -60,25 +44,18 @@ python app.py
 
 La app corre en `http://localhost:5000`
 
-## Docker
-
-```bash
-docker compose up -d
-```
-
-La base de datos se persiste en el volumen `./data/`. Copiar `torneo.db` a esa carpeta antes del primer arranque.
-
 ## Estructura del proyecto
 
 ```
 ├── app.py                  # Factory de la app Flask
 ├── config.py               # Configuracion por entorno
 ├── db.py                   # Conexion SQLite (WAL, foreign keys)
-├── blueprints/             # 10 blueprints (main, teams, players, etc.)
+├── blueprints/             # 15 blueprints (main, teams, players, etc.)
 ├── services/               # Logica compartida (standings, weekly)
+├── models/                 # Modelos de dominio (Team, Player, Game, Week)
+├── lib/                    # Stats, scoring, utilidades
+├── scripts/                # Herramientas CLI (query, finalize_week, etc.)
 ├── templates/              # Jinja2 con componentes reutilizables
 ├── static/                 # CSS y graficos (logos, fotos)
-├── schema.sql              # DDL de referencia
-├── Dockerfile              # Imagen de produccion
-└── docker-compose.yml      # Deploy con volumen para DB
+└── schema.sql              # DDL de referencia
 ```

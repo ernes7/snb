@@ -50,6 +50,10 @@ ANALYST_WEIGHTS: dict[int, dict[str, float]] = {
 HATE_BIAS_BOOST = 0.85
 HATE_BIAS_PENALTY = 0.15
 
+# Within the "pitch" factor, blend general OVR with pitcher personal H2H.
+PITCH_OVR_BLEND = 0.6
+PITCH_H2H_BLEND = 0.4
+
 # Game-of-the-Week scoring: score = quality * QUALITY_WEIGHT + closeness.
 GOTW_QUALITY_WEIGHT = 3
 

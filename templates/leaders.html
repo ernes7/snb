@@ -25,22 +25,22 @@
 
 {% if bat_hr %}
 {{ leaderboard_table('Home Runs', 'Lideres de home runs', bat_hr,
-    [('HR', 'HR', true)]) }}
+    [('AB', 'AB', false), ('HR', 'HR', true)]) }}
 {% endif %}
 
 {% if bat_hits %}
 {{ leaderboard_table('Hits', 'Lideres de hits', bat_hits,
-    [('H', 'H', true)]) }}
+    [('AB', 'AB', false), ('H', 'H', true)]) }}
 {% endif %}
 
 {% if bat_rbi %}
 {{ leaderboard_table('Carreras Impulsadas', 'Lideres de carreras impulsadas', bat_rbi,
-    [('RBI', 'RBI', true)]) }}
+    [('AB', 'AB', false), ('RBI', 'RBI', true)]) }}
 {% endif %}
 
 {% if pitch_wins %}
 {{ leaderboard_table('Victorias', 'Lideres de victorias', pitch_wins,
-    [('G', 'W', true), ('P', 'L', false)]) }}
+    [('IP', 'IP_outs', false), ('G', 'W', true), ('P', 'L', false)]) }}
 {% endif %}
 
 {% if pitch_era %}

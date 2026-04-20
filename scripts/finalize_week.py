@@ -137,7 +137,10 @@ def main(week_num: int) -> None:
               f"({result['rankings_count']} teams)")
         print(f"[auto] picks for W{next_week} saved "
               f"({result['picks_count']} rows)")
-        print(f"[auto] Game of the Week for W{next_week} = schedule_id {gotw}\n")
+        print(f"[auto] Game of the Week for W{next_week} = schedule_id {gotw}")
+        ml_count = result.get("moneylines_count", 0)
+        print(f"[auto] moneylines for W{next_week} saved "
+              f"({ml_count} props across {ml_count // 3} games)\n")
     else:
         print(f"[skip auto] {reason}\n")
 

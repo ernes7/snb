@@ -24,20 +24,20 @@
         <section class="tab-pane" id="ts-bateo" role="tabpanel"
                  {% if not bat_teams %}hidden{% endif %}>
             {% if bat_teams %}
-            <div class="table-scroll"><table class="leaderboard stat-table">
+            <div class="table-scroll"><table id="ts-bat-table" class="leaderboard stat-table">
                 <caption class="sr-only">Equipos ordenados por OPS</caption>
                 <thead>
                     <tr>
-                        <th class="num" scope="col">#</th>
-                        <th scope="col">Equipo</th>
-                        <th class="num" scope="col">AB</th>
-                        <th class="num" scope="col">H</th>
-                        <th class="num" scope="col">HR</th>
-                        <th class="num" scope="col">CI</th>
-                        <th class="num" scope="col">AVG</th>
-                        <th class="num" scope="col">OBP</th>
-                        <th class="num" scope="col">SLG</th>
-                        <th class="num" scope="col">OPS</th>
+                        <th class="num" data-sort="num" scope="col">#</th>
+                        <th data-sort="text" scope="col">Equipo</th>
+                        <th class="num" data-sort="num" scope="col">AB</th>
+                        <th class="num" data-sort="num" scope="col">H</th>
+                        <th class="num" data-sort="num" scope="col">HR</th>
+                        <th class="num" data-sort="num" scope="col">CI</th>
+                        <th class="num" data-sort="num" scope="col">AVG</th>
+                        <th class="num" data-sort="num" scope="col">OBP</th>
+                        <th class="num" data-sort="num" scope="col">SLG</th>
+                        <th class="num" data-sort="num" scope="col">OPS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -62,19 +62,19 @@
 
         <section class="tab-pane" id="ts-pitcheo" role="tabpanel" hidden>
             {% if pitch_teams %}
-            <div class="table-scroll"><table class="leaderboard stat-table">
+            <div class="table-scroll"><table id="ts-pitch-table" class="leaderboard stat-table">
                 <caption class="sr-only">Equipos ordenados por efectividad</caption>
                 <thead>
                     <tr>
-                        <th class="num" scope="col">#</th>
-                        <th scope="col">Equipo</th>
-                        <th class="num" scope="col">IP</th>
-                        <th class="num" scope="col">H</th>
-                        <th class="num" scope="col">BB</th>
-                        <th class="num" scope="col">SO</th>
-                        <th class="num" scope="col">WHIP</th>
-                        <th class="num" scope="col">K/9</th>
-                        <th class="num" scope="col">ERA</th>
+                        <th class="num" data-sort="num" scope="col">#</th>
+                        <th data-sort="text" scope="col">Equipo</th>
+                        <th class="num" data-sort="num" scope="col">IP</th>
+                        <th class="num" data-sort="num" scope="col">H</th>
+                        <th class="num" data-sort="num" scope="col">BB</th>
+                        <th class="num" data-sort="num" scope="col">SO</th>
+                        <th class="num" data-sort="num" scope="col">WHIP</th>
+                        <th class="num" data-sort="num" scope="col">K/9</th>
+                        <th class="num" data-sort="num" scope="col">ERA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,4 +99,13 @@
 </div>
 
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+var bt = document.getElementById('ts-bat-table');
+if (bt) initSortableTable(bt);
+var pt = document.getElementById('ts-pitch-table');
+if (pt) initSortableTable(pt);
+</script>
 {% endblock %}

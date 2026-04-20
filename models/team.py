@@ -324,34 +324,56 @@ class Team(RowModel):
         """, {"tid": self.id}).fetchone()
         return row["errors"] if row else 0
 
-    def bat_leaders(self, limit: int = 5) -> list[dict]:
-        """Top N batters on this team (by AVG, min 1 AB)."""
-        return [dict(r) for r in get_db().execute("""
+    def bat_leaders(self, limit: int | None = None) -> list[dict]:
+        """Batters on this team (by AVG, min 1 AB)."""
+        sql = """
             SELECT p.id, p.name, p.position,
-                SUM(bs.AB) AS AB, SUM(bs.H) AS H,
+                COUNT(*) AS G,
+                SUM(bs.AB) AS AB, SUM(bs.R) AS R, SUM(bs.H) AS H,
+                SUM(bs.doubles) AS doubles, SUM(bs.triples) AS triples,
                 SUM(bs.HR) AS HR, SUM(bs.RBI) AS RBI,
+                SUM(bs.BB) AS BB, SUM(bs.SO) AS SO, SUM(bs.SB) AS SB,
                 CASE WHEN SUM(bs.AB)>0
                      THEN ROUND(CAST(SUM(bs.H) AS FLOAT)/SUM(bs.AB), 3)
-                     ELSE 0 END AS AVG
+                     ELSE 0 END AS AVG,
+                CASE WHEN SUM(bs.AB)+SUM(bs.BB)>0
+                     THEN ROUND(
+                         CAST(SUM(bs.H)+SUM(bs.BB) AS FLOAT)/(SUM(bs.AB)+SUM(bs.BB))
+                         + CAST(SUM(bs.H)+SUM(bs.doubles)+2*SUM(bs.triples)+3*SUM(bs.HR) AS FLOAT)/SUM(bs.AB),
+                     3) ELSE 0 END AS OPS
             FROM batting_stats bs
             JOIN players p ON bs.player_id = p.id
             WHERE bs.team_id = ?
             GROUP BY p.id HAVING SUM(bs.AB) > 0
-            ORDER BY AVG DESC LIMIT ?
-        """, (self.id, limit)).fetchall()]
+            ORDER BY AVG DESC
+        """
+        params: list = [self.id]
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+        return [dict(r) for r in get_db().execute(sql, params).fetchall()]
 
-    def pitch_leaders(self, limit: int = 5) -> list[dict]:
-        """Top N pitchers on this team (by ERA, min 1 IP)."""
-        return [dict(r) for r in get_db().execute("""
+    def pitch_leaders(self, limit: int | None = None) -> list[dict]:
+        """Pitchers on this team (by ERA, min 1 IP)."""
+        sql = """
             SELECT p.id, p.name,
-                SUM(ps.IP_outs) AS IP_outs, SUM(ps.SO) AS SO,
-                SUM(ps.W) AS W, SUM(ps.L) AS L,
+                SUM(ps.IP_outs) AS IP_outs, SUM(ps.H) AS H,
+                SUM(ps.BB) AS BB, SUM(ps.SO) AS SO,
+                SUM(ps.W) AS W, SUM(ps.L) AS L, SUM(ps.SV) AS SV,
                 CASE WHEN SUM(ps.IP_outs)>0
                      THEN ROUND(CAST(SUM(ps.ER)*27 AS FLOAT)/SUM(ps.IP_outs), 2)
-                     ELSE 0 END AS ERA
+                     ELSE 0 END AS ERA,
+                CASE WHEN SUM(ps.IP_outs)>0
+                     THEN ROUND(CAST((SUM(ps.H)+SUM(ps.BB))*3 AS FLOAT)/SUM(ps.IP_outs), 2)
+                     ELSE 0 END AS WHIP
             FROM pitching_stats ps
             JOIN players p ON ps.player_id = p.id
             WHERE ps.team_id = ?
             GROUP BY p.id HAVING SUM(ps.IP_outs) > 0
-            ORDER BY ERA ASC LIMIT ?
-        """, (self.id, limit)).fetchall()]
+            ORDER BY ERA ASC
+        """
+        params: list = [self.id]
+        if limit is not None:
+            sql += " LIMIT ?"
+            params.append(limit)
+        return [dict(r) for r in get_db().execute(sql, params).fetchall()]

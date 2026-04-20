@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from 'components/logo_img.html' import logo_img %}
+{% from 'components/pitcher_credits.html' import pitcher_credits %}
+{% block title %}{{ team_a.short_name }} vs {{ team_b.short_name }} - Serie Nacional{% endblock %}
+{% block content %}
+
+<div class="matchup-header">
+    <div class="matchup-team matchup-team-left" style="--team-color: {{ team_a.color_primary }};">
+        {{ logo_img(team_a.logo_file, 'inline-logo', team_a.short_name) }}
+        <span class="team-color-bold">{{ team_a.name }}</span>
+    </div>
+    <div class="matchup-vs">
+        <span class="stat-num matchup-record">{{ h2h.wins }}-{{ h2h.losses }}</span>
+    </div>
+    <div class="matchup-team matchup-team-right" style="--team-color: {{ team_b.color_primary }};">
+        {{ logo_img(team_b.logo_file, 'inline-logo', team_b.short_name) }}
+        <span class="team-color-bold">{{ team_b.name }}</span>
+    </div>
+</div>
+
+{% if played %}
+<h2>Juegos Jugados</h2>
+{% for g in played %}
+<div class="card matchup-game">
+    <div class="matchup-game-label">Semana {{ g.week_num }} &middot; Juego #{{ g.game_num }}</div>
+    <div class="overflow-x">
+    <table class="linescore">
+        <thead>
+            <tr>
+                <th scope="col"></th>
+                {% for i in range(1, g.innings + 1) %}
+                <th class="num" scope="col">{{ i }}</th>
+                {% endfor %}
+                <th class="num linescore-sep" scope="col">C</th>
+                <th class="num" scope="col">H</th>
+                <th class="num" scope="col">E</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for side in ['away', 'home'] %}
+            {% set team = g[side] %}
+            {% set ls = g[side ~ '_ls'] %}
+            {% set runs = g[side ~ '_runs'] %}
+            {% set hits = g[side ~ '_hits'] %}
+            {% set errors = g[side ~ '_errors'] %}
+            {% set is_winner = runs > g[('home' if side == 'away' else 'away') ~ '_runs'] %}
+            <tr>
+                <td class="linescore-team">
+                    {{ logo_img(team.logo_file, 'inline-logo-md') }}
+                    <span class="team-color-bold" style="--team-color: {{ team.color_primary }}">{{ team.short_name }}</span>
+                </td>
+                {% for inn in ls %}
+                <td class="num {% if inn > 0 %}inn-scored{% endif %}">{{ inn }}</td>
+                {% endfor %}
+                {% for _ in range(ls|length, g.innings) %}
+                <td class="num">x</td>
+                {% endfor %}
+                <td class="num linescore-sep fw-700 {% if is_winner %}team-color{% endif %}"
+                    {% if is_winner %}style="--team-color: {{ team.color_primary }}"{% endif %}>{{ runs }}</td>
+                <td class="num fw-600">{{ hits }}</td>
+                <td class="num">{{ errors }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <div class="matchup-game-footer text-muted">
+        {{ pitcher_credits(g.wp_name, g.lp_name, g.sv_name) }}
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="panel">
+    <p class="text-muted">No se han jugado encuentros aún.</p>
+</div>
+{% endif %}
+
+{% if upcoming %}
+<h2>Juegos Pendientes</h2>
+<div class="panel">
+    <ul class="matchup-upcoming-list">
+        {% for g in upcoming %}
+        <li class="matchup-upcoming-item">
+            <span class="matchup-upcoming-week">Semana {{ g.week_num }}</span>
+            <span class="matchup-upcoming-teams">
+                {{ logo_img(g.away.logo_file, 'inline-logo-sm', g.away.short_name) }}
+                <span class="team-color-bold" style="--team-color: {{ g.away.color_primary }}">{{ g.away.short_name }}</span>
+                <span class="text-muted">@</span>
+                {{ logo_img(g.home.logo_file, 'inline-logo-sm', g.home.short_name) }}
+                <span class="team-color-bold" style="--team-color: {{ g.home.color_primary }}">{{ g.home.short_name }}</span>
+            </span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="mt-5">
+    <a href="{{ url_for('versus.versus') }}" class="btn btn-secondary btn-sm">&larr; Duelos Directos</a>
+</div>
+
+{% endblock %}

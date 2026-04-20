@@ -239,7 +239,7 @@ def validate_game(db: sqlite3.Connection, game_id: int,
 
         # 3) Linescore sum must match runs
         if linescore:
-            ls_sum = sum(int(x) for x in linescore.split(",") if x.strip())
+            ls_sum = sum(int(x) for x in linescore.split(",") if x.strip() and x.strip() != "X")
             if ls_sum != exp_r:
                 errors.append(
                     f"{label} ({bat_team}): linescore sums to {ls_sum}, "

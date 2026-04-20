@@ -37,30 +37,30 @@ def get_bat_ops_leaders() -> list[dict[str, Any]]:
 
 
 def get_bat_hr_leaders() -> list[dict[str, Any]]:
-    """Top 5 home run leaders. Ties broken by most AB."""
+    """Top 5 home run leaders. Ties broken by fewest AB."""
     qualified = [e for e in get_all_batting_lines() if e["HR"] > 0]
-    top = sorted(qualified, key=lambda e: (-e["HR"], -e["AB"]))[:5]
+    top = sorted(qualified, key=lambda e: (-e["HR"], e["AB"]))[:5]
     return _attach_spark(top, get_weekly_batting_series("OPS"))
 
 
 def get_bat_hits_leaders() -> list[dict[str, Any]]:
-    """Top 5 hits leaders. Ties broken by most AB."""
+    """Top 5 hits leaders. Ties broken by fewest AB."""
     qualified = [e for e in get_all_batting_lines() if e["H"] > 0]
-    top = sorted(qualified, key=lambda e: (-e["H"], -e["AB"]))[:5]
+    top = sorted(qualified, key=lambda e: (-e["H"], e["AB"]))[:5]
     return _attach_spark(top, get_weekly_batting_series("AVG"))
 
 
 def get_bat_rbi_leaders() -> list[dict[str, Any]]:
-    """Top 5 RBI leaders. Ties broken by most AB."""
+    """Top 5 RBI leaders. Ties broken by fewest AB."""
     qualified = [e for e in get_all_batting_lines() if e["RBI"] > 0]
-    top = sorted(qualified, key=lambda e: (-e["RBI"], -e["AB"]))[:5]
+    top = sorted(qualified, key=lambda e: (-e["RBI"], e["AB"]))[:5]
     return _attach_spark(top, get_weekly_batting_series("OPS"))
 
 
 def get_pitch_wins_leaders() -> list[dict[str, Any]]:
-    """Top 5 wins leaders. Ties broken by most innings pitched."""
+    """Top 5 wins leaders. Ties broken by fewest innings pitched."""
     qualified = [e for e in get_all_pitching_lines() if e["W"] > 0]
-    top = sorted(qualified, key=lambda e: (-e["W"], -e["IP_outs"]))[:5]
+    top = sorted(qualified, key=lambda e: (-e["W"], e["IP_outs"]))[:5]
     return _attach_spark(top, get_weekly_pitching_series("ERA"))
 
 
@@ -79,7 +79,7 @@ def get_pitch_whip_leaders() -> list[dict[str, Any]]:
 
 
 def get_pitch_so_leaders() -> list[dict[str, Any]]:
-    """Top 5 strikeout leaders. Ties broken by most innings pitched."""
+    """Top 5 strikeout leaders. Ties broken by fewest innings pitched."""
     qualified = [e for e in get_all_pitching_lines() if e["SO"] > 0]
-    top = sorted(qualified, key=lambda e: (-e["SO"], -e["IP_outs"]))[:5]
+    top = sorted(qualified, key=lambda e: (-e["SO"], e["IP_outs"]))[:5]
     return _attach_spark(top, get_weekly_pitching_series("K9"))

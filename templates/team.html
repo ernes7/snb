@@ -137,17 +137,44 @@
 </div>
 {% if bat_leaders %}
 <div class="panel">
-    <h2>Lideres Bateo</h2>
-    <div class="table-scroll"><table class="stat-table leaderboard">
-        <caption class="sr-only">Lideres de bateo del equipo</caption>
-        <thead><tr><th scope="col">Nombre</th><th scope="col">Pos</th><th class="num" scope="col">AB</th><th class="num" scope="col">H</th><th class="num" scope="col">HR</th><th class="num" scope="col">RBI</th><th class="num" scope="col">AVG</th></tr></thead>
+    <h2>Estadisticas Bateo</h2>
+    <div class="table-scroll"><table class="stat-table leaderboard" id="team-batting">
+        <caption class="sr-only">Estadisticas de bateo del equipo</caption>
+        <thead><tr>
+            <th scope="col" data-sort="text">Nombre</th>
+            <th scope="col" data-sort="text">Pos</th>
+            <th class="num" scope="col" data-sort="num">G</th>
+            <th class="num" scope="col" data-sort="num">AB</th>
+            <th class="num" scope="col" data-sort="num">R</th>
+            <th class="num" scope="col" data-sort="num">H</th>
+            <th class="num" scope="col" data-sort="num">2B</th>
+            <th class="num" scope="col" data-sort="num">3B</th>
+            <th class="num" scope="col" data-sort="num">HR</th>
+            <th class="num" scope="col" data-sort="num">RBI</th>
+            <th class="num" scope="col" data-sort="num">BB</th>
+            <th class="num" scope="col" data-sort="num">SO</th>
+            <th class="num" scope="col" data-sort="num">SB</th>
+            <th class="num" scope="col" data-sort="num">AVG</th>
+            <th class="num" scope="col" data-sort="num">OPS</th>
+        </tr></thead>
         <tbody>
         {% for b in bat_leaders %}
         <tr>
             <td><a href="{{ url_for('players.player', player_id=b.id) }}">{{ b.name }}</a></td>
             <td>{{ b.position }}</td>
-            <td class="num">{{ b.AB }}</td><td class="num">{{ b.H }}</td><td class="num">{{ b.HR }}</td>
-            <td class="num">{{ b.RBI }}</td><td class="num pct">{{ "%.3f"|format(b.AVG) }}</td>
+            <td class="num">{{ b.G }}</td>
+            <td class="num">{{ b.AB }}</td>
+            <td class="num">{{ b.R }}</td>
+            <td class="num">{{ b.H }}</td>
+            <td class="num">{{ b.doubles }}</td>
+            <td class="num">{{ b.triples }}</td>
+            <td class="num">{{ b.HR }}</td>
+            <td class="num">{{ b.RBI }}</td>
+            <td class="num">{{ b.BB }}</td>
+            <td class="num">{{ b.SO }}</td>
+            <td class="num">{{ b.SB }}</td>
+            <td class="num pct">{{ "%.3f"|format(b.AVG) }}</td>
+            <td class="num pct">{{ "%.3f"|format(b.OPS) }}</td>
         </tr>
         {% endfor %}
         </tbody>
@@ -156,16 +183,34 @@
 {% endif %}
 {% if pitch_leaders %}
 <div class="panel">
-    <h2>Lideres Pitcheo</h2>
-    <div class="table-scroll"><table class="stat-table leaderboard">
-        <caption class="sr-only">Lideres de pitcheo del equipo</caption>
-        <thead><tr><th scope="col">Nombre</th><th class="num" scope="col">IP</th><th class="num" scope="col">G</th><th class="num" scope="col">P</th><th class="num" scope="col">SO</th><th class="num" scope="col">ERA</th></tr></thead>
+    <h2>Estadisticas Pitcheo</h2>
+    <div class="table-scroll"><table class="stat-table leaderboard" id="team-pitching">
+        <caption class="sr-only">Estadisticas de pitcheo del equipo</caption>
+        <thead><tr>
+            <th scope="col" data-sort="text">Nombre</th>
+            <th class="num" scope="col" data-sort="num">IP</th>
+            <th class="num" scope="col" data-sort="num">W</th>
+            <th class="num" scope="col" data-sort="num">L</th>
+            <th class="num" scope="col" data-sort="num">SV</th>
+            <th class="num" scope="col" data-sort="num">H</th>
+            <th class="num" scope="col" data-sort="num">BB</th>
+            <th class="num" scope="col" data-sort="num">SO</th>
+            <th class="num" scope="col" data-sort="num">ERA</th>
+            <th class="num" scope="col" data-sort="num">WHIP</th>
+        </tr></thead>
         <tbody>
         {% for pl in pitch_leaders %}
         <tr>
             <td><a href="{{ url_for('players.player', player_id=pl.id) }}">{{ pl.name }}</a></td>
-            <td class="num">{{ format_ip(pl.IP_outs) }}</td><td class="num">{{ pl.W }}</td><td class="num">{{ pl.L }}</td>
-            <td class="num">{{ pl.SO }}</td><td class="num">{{ "%.2f"|format(pl.ERA) }}</td>
+            <td class="num">{{ format_ip(pl.IP_outs) }}</td>
+            <td class="num">{{ pl.W }}</td>
+            <td class="num">{{ pl.L }}</td>
+            <td class="num">{{ pl.SV }}</td>
+            <td class="num">{{ pl.H }}</td>
+            <td class="num">{{ pl.BB }}</td>
+            <td class="num">{{ pl.SO }}</td>
+            <td class="num">{{ "%.2f"|format(pl.ERA) }}</td>
+            <td class="num">{{ "%.2f"|format(pl.WHIP) }}</td>
         </tr>
         {% endfor %}
         </tbody>
@@ -173,4 +218,11 @@
 </div>
 {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+initSortableTable(document.getElementById('team-batting'));
+initSortableTable(document.getElementById('team-pitching'));
+</script>
 {% endblock %}

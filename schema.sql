@@ -237,3 +237,22 @@ CREATE INDEX IF NOT EXISTS idx_analyst_tweets_week   ON analyst_tweets(week_num)
 CREATE INDEX IF NOT EXISTS idx_analyst_tweets_game   ON analyst_tweets(game_id);
 CREATE INDEX IF NOT EXISTS idx_tweet_replies_tweet   ON tweet_replies(tweet_id);
 CREATE INDEX IF NOT EXISTS idx_players_team          ON players(team_id);
+
+-- -------------------------------------------------------------------
+-- Player moneylines — data-driven prop predictions per game
+-- -------------------------------------------------------------------
+CREATE TABLE game_moneylines (
+    id INTEGER PRIMARY KEY,
+    schedule_id INTEGER NOT NULL REFERENCES schedule(id),
+    player_id INTEGER NOT NULL REFERENCES players(id),
+    team_id INTEGER NOT NULL REFERENCES teams(id),
+    prop_type TEXT NOT NULL,
+    prop_text TEXT NOT NULL,
+    stat_detail TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    slot INTEGER NOT NULL CHECK (slot IN (1, 2, 3)),
+    week_num INTEGER NOT NULL,
+    UNIQUE(schedule_id, slot)
+);
+CREATE INDEX IF NOT EXISTS idx_moneylines_schedule ON game_moneylines(schedule_id);
+CREATE INDEX IF NOT EXISTS idx_moneylines_week     ON game_moneylines(week_num);

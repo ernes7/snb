@@ -19,6 +19,7 @@
     </div>
     <div class="schedule-list">
     {% for g in week_games %}
+        <div class="sched-game">
         {% set game_picks = picks.get(g.id, []) %}
         <div class="sched-row {% if g.home_runs is not none %}played{% endif %} {% if g.home_runs is not none and g.home_runs > g.away_runs %}home-win{% elif g.home_runs is not none and g.away_runs > g.home_runs %}away-win{% endif %} {% if g.id in games_of_week %}game-of-week{% endif %}" {% if g.game_id %}data-href="{{ url_for('games.game_detail', game_id=g.game_id) }}"{% endif %}>
             {% if g.id in games_of_week %}
@@ -73,9 +74,17 @@
             <div class="sched-starters">
                 <div class="sched-num"></div>
                 <div class="sched-matchup">
-                    <span class="sched-team home starter-label team-color" style="--team-color: {{ g.home_color }}">{{ home_starter or '?' }}</span>
+                    <span class="sched-team home starter-label team-color" style="--team-color: {{ g.home_color }}">
+                        {%- if home_starter -%}
+                        <span class="starter-stats">({{ home_starter.W }}-{{ home_starter.L }}, {{ home_starter.IP }}, {{ '%.2f'|format(home_starter.ERA) }})</span> <span class="{{ lazo_top.get(home_starter.player_id, '') }}">{{ home_starter.name }}</span>
+                        {%- else -%}?{%- endif -%}
+                    </span>
                     <span class="sched-vs starter-vs">vs</span>
-                    <span class="sched-team away starter-label team-color" style="--team-color: {{ g.away_color }}">{{ away_starter or '?' }}</span>
+                    <span class="sched-team away starter-label team-color" style="--team-color: {{ g.away_color }}">
+                        {%- if away_starter -%}
+                        <span class="{{ lazo_top.get(away_starter.player_id, '') }}">{{ away_starter.name }}</span> <span class="starter-stats">({{ away_starter.W }}-{{ away_starter.L }}, {{ away_starter.IP }}, {{ '%.2f'|format(away_starter.ERA) }})</span>
+                        {%- else -%}?{%- endif -%}
+                    </span>
                 </div>
             </div>
             {% endif %}
@@ -87,7 +96,7 @@
                 <div class="unav-team">
                     <span class="unav-label team-color" style="--team-color: {{ g.home_color }}">{{ g.home_short }} no disponibles:</span>
                     {% for p in home_unav %}
-                    <span class="unav-pitcher" title="{{ p.pitches }} lanz, descansa {{ p.rest_games }} juegos ({{ p.games_rested }} cumplidos)">{{ p.name }}</span>
+                    <span class="unav-pitcher" title="{{ p.pitches }} lanz, descansa {{ p.rest_games }} juegos ({{ p.games_rested }} cumplidos)" data-rest="{{ p.games_rested }}/{{ p.rest_games }}">{{ p.name }}</span>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -95,13 +104,25 @@
                 <div class="unav-team">
                     <span class="unav-label team-color" style="--team-color: {{ g.away_color }}">{{ g.away_short }} no disponibles:</span>
                     {% for p in away_unav %}
-                    <span class="unav-pitcher" title="{{ p.pitches }} lanz, descansa {{ p.rest_games }} juegos ({{ p.games_rested }} cumplidos)">{{ p.name }}</span>
+                    <span class="unav-pitcher" title="{{ p.pitches }} lanz, descansa {{ p.rest_games }} juegos ({{ p.games_rested }} cumplidos)" data-rest="{{ p.games_rested }}/{{ p.rest_games }}">{{ p.name }}</span>
                     {% endfor %}
                 </div>
                 {% endif %}
             </div>
             {% endif %}
+            {% set game_moneylines = moneylines.get(g.id, []) %}
+            {% if game_moneylines %}
+            <div class="sched-moneylines">
+                {% for ml in game_moneylines %}
+                <span class="moneyline-item">
+                    <span class="moneyline-dot team-color" style="--team-color: {{ ml.team_color }}"></span>
+                    <span class="moneyline-text">{{ ml.prop_text }}</span>
+                </span>
+                {% endfor %}
+            </div>
             {% endif %}
+            {% endif %}
+        </div>
     {% endfor %}
     </div>
 </div>
@@ -116,5 +137,10 @@ document.querySelectorAll('.sched-row[data-href]').forEach(function(row) {
         window.location.href = row.dataset.href;
     });
 });
+
+var cw = document.querySelector('.current-week');
+if (cw) {
+    cw.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
 </script>
 {% endblock %}

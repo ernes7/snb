@@ -12,6 +12,8 @@ from lib.scoring import (
     GOTW_QUALITY_WEIGHT,
     HATE_BIAS_BOOST,
     HATE_BIAS_PENALTY,
+    PITCH_H2H_BLEND,
+    PITCH_OVR_BLEND,
 )
 from lib.utils import format_ip
 
@@ -202,16 +204,16 @@ def _pitcher_ovr(p: sqlite3.Row) -> float:
 def _get_best_available_pitcher(
     db: sqlite3.Connection, team_id: int, week_num: int,
     unavailable: dict[str, list[dict[str, Any]]] | None = None,
-) -> tuple[float, str | None]:
-    """Get the best available starting pitcher's OVR and name for a team.
+) -> tuple[float, str | None, int | None]:
+    """Get the best available pitcher's OVR, name, and ID for a team.
 
-    Returns (ovr, name) or (0.0, None) if no data.
+    Considers all pitchers (rotation + bullpen) with stamina > 70.
+    Returns (ovr, name, player_id) or (0.0, None, None) if no data.
     """
     if unavailable is None:
         from blueprints.schedule.services import get_unavailable_pitchers
         unavailable = get_unavailable_pitchers()
 
-    # Get schedule_ids for this week to check unavailability
     scheds = db.execute("""
         SELECT id FROM schedule
         WHERE phase = 'regular' AND week_num = ?
@@ -225,17 +227,20 @@ def _get_best_available_pitcher(
             unavail_names.add(p["name"])
 
     pitchers = db.execute("""
-        SELECT p.name, pa.stamina, pa.fastball, pa.slider, pa.curveball,
+        SELECT p.id, p.name, pa.stamina, pa.fastball, pa.slider, pa.curveball,
             pa.sinker, pa.changeup, pa.splitter, pa.screwball,
             pa.cutter, pa.curveball_dirt
         FROM players p
         LEFT JOIN player_attributes pa ON p.id = pa.player_id
-        WHERE p.team_id = ? AND p.role = 'rotation'
+        WHERE p.team_id = ?
+            AND (p.role = 'rotation'
+                 OR (p.role = 'bullpen' AND COALESCE(pa.stamina, 0) > 60))
         ORDER BY p.lineup_order
     """, (team_id,)).fetchall()
 
     best_ovr = 0.0
     best_name: str | None = None
+    best_id: int | None = None
     for p in pitchers:
         if p["name"] in unavail_names:
             continue
@@ -243,7 +248,8 @@ def _get_best_available_pitcher(
         if ovr > best_ovr:
             best_ovr = ovr
             best_name = p["name"]
-    return best_ovr, best_name
+            best_id = p["id"]
+    return best_ovr, best_name, best_id
 
 
 def _get_h2h_record(
@@ -268,6 +274,24 @@ def _get_h2h_record(
     a_wins = sum(r["a_win"] for r in rows)
     b_wins = sum(r["b_win"] for r in rows)
     return a_wins, b_wins
+
+
+def _get_pitcher_h2h(
+    db: sqlite3.Connection, pitcher_id: int, opponent_team_id: int,
+) -> tuple[int, int]:
+    """Get a pitcher's personal W-L record against a specific team."""
+    row = db.execute("""
+        SELECT COALESCE(SUM(ps.W), 0) as wins,
+               COALESCE(SUM(ps.L), 0) as losses
+        FROM pitching_stats ps
+        JOIN games g ON ps.game_id = g.id
+        JOIN schedule s ON g.schedule_id = s.id
+        WHERE ps.player_id = ?
+        AND (CASE WHEN ps.team_id = s.home_team_id
+                  THEN s.away_team_id
+                  ELSE s.home_team_id END) = ?
+    """, (pitcher_id, opponent_team_id)).fetchone()
+    return row["wins"], row["losses"]
 
 
 def generate_game_picks(week_num: int) -> list[dict[str, Any]]:
@@ -306,12 +330,26 @@ def generate_game_picks(week_num: int) -> list[dict[str, Any]]:
         h_rank_score = (8 - h_rank) / 7 if rank_map else 0.5
         a_rank_score = (8 - a_rank) / 7 if rank_map else 0.5
 
-        # --- Factor 3: Pitcher matchup (0-1 scale) ---
-        h_pitch, _ = _get_best_available_pitcher(db, home, week_num)
-        a_pitch, _ = _get_best_available_pitcher(db, away, week_num)
+        # --- Factor 3: Pitcher matchup (0-1 scale, blends OVR + pitcher H2H) ---
+        h_pitch, _, h_pid = _get_best_available_pitcher(db, home, week_num)
+        a_pitch, _, a_pid = _get_best_available_pitcher(db, away, week_num)
         max_pitch = max(h_pitch, a_pitch, 1)
-        h_pitch_score = h_pitch / max_pitch
-        a_pitch_score = a_pitch / max_pitch
+        h_ovr = h_pitch / max_pitch
+        a_ovr = a_pitch / max_pitch
+
+        if h_pid:
+            hw, hl = _get_pitcher_h2h(db, h_pid, away)
+            h_ph2h = hw / (hw + hl) if (hw + hl) else 0.5
+        else:
+            h_ph2h = 0.5
+        if a_pid:
+            aw, al = _get_pitcher_h2h(db, a_pid, home)
+            a_ph2h = aw / (aw + al) if (aw + al) else 0.5
+        else:
+            a_ph2h = 0.5
+
+        h_pitch_score = PITCH_OVR_BLEND * h_ovr + PITCH_H2H_BLEND * h_ph2h
+        a_pitch_score = PITCH_OVR_BLEND * a_ovr + PITCH_H2H_BLEND * a_ph2h
 
         # --- Factor 4: Head-to-head (0-1 scale) ---
         h2h_hw, h2h_aw = _get_h2h_record(db, home, away)
@@ -544,6 +582,11 @@ def auto_generate_week(week_num: int) -> dict[str, Any]:
                 game_of_week_id = excluded.game_of_week_id
         """, (week_num, gotw_id))
 
+    # 4. Player moneylines for week_num
+    from services.moneylines import generate_moneylines, save_moneylines
+    moneylines = generate_moneylines(week_num)
+    save_moneylines(week_num, moneylines)
+
     db.commit()
 
     return {
@@ -552,6 +595,7 @@ def auto_generate_week(week_num: int) -> dict[str, Any]:
         "rankings_count": len(rankings),
         "picks_count": len(picks),
         "game_of_week_id": gotw_id,
+        "moneylines_count": len(moneylines),
     }
 
 

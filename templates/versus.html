@@ -35,7 +35,9 @@
                     {% set l = cell.l if cell else 0 %}
                     {% set cls = 'versus-win' if w > l else ('versus-loss' if l > w else 'versus-tie') %}
                     <td class="versus-cell {{ cls }}{% if loop.index == 5 %} versus-split{% endif %}" aria-label="{{ row.short_name }} {{ w }}-{{ l }} vs {{ col.short_name }}">
-                        <span class="stat-num">{{ w }}-{{ l }}</span>
+                        <a href="{{ url_for('versus.matchup', team1=row.short_name, team2=col.short_name) }}" class="versus-cell-link">
+                            <span class="stat-num">{{ w }}-{{ l }}</span>
+                        </a>
                     </td>
                 {% endif %}
             {% endfor %}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
-{% from 'components/tweet_item.html' import tweet_item %}
-{% from 'components/empty_state.html' import empty_state %}
+{% from 'components/stat_box.html' import stat_box %}
+{% from 'components/sparkline.html' import sparkline %}
+{% from 'components/logo_img.html' import logo_img %}
 {% block title %}Antesala - Torneo MVP Cuba 2011{% endblock %}
 {% block content %}
 
@@ -85,27 +86,56 @@
     </div>
 </div>
 
-<!-- TWEET FEED -->
-<h2>Cobertura en Vivo</h2>
+<!-- ANALYST ACCURACY HUB -->
+<h2>Aciertos de los Analistas</h2>
 
-{% if tweets_by_game %}
-    {% for game_num, data in tweets_by_game|dictsort(reverse=true) %}
-    <div class="game-divider">
-        <div class="game-line"></div>
-        <div class="game-label">
-            Juego #{{ game_num }} &mdash;
-            {{ data.game.away_short }} @ {{ data.game.home_short }}
-            <strong>{{ data.game.away_runs }}-{{ data.game.home_runs }}</strong>
+{% for a in analysts %}
+{% set details = analyst_details.get(a.id, {}) %}
+{% set record = details.get('record', {}) %}
+{% set streaks = details.get('streaks', {}) %}
+{% set weekly = details.get('weekly', []) %}
+{% set by_team = details.get('by_team', []) %}
+
+<div class="analyst-card">
+    <div class="analyst-card-header">
+        {% if a.avatar_file %}
+        <img src="{{ url_for('static', filename='graphics/' + a.avatar_file) }}"
+             class="analyst-card-avatar" alt="{{ a.handle }}">
+        {% endif %}
+        <div class="analyst-card-info">
+            <strong class="analyst-name">{{ a.handle }}</strong>
+            <span class="analyst-age">{{ a.edad }} anos</span>
+            <p class="analyst-bio">{{ a.descripcion }}</p>
         </div>
-        <div class="game-line"></div>
     </div>
-    {% for t in data.tweets %}
-    {{ tweet_item(t) }}
-    {% endfor %}
-    {% endfor %}
-{% else %}
-    {{ empty_state("La temporada aun no ha comenzado. Los tweets apareceran aqui cuando se juegue el primer partido.") }}
-{% endif %}
+
+    <div class="analyst-stats-row">
+        {{ stat_box(record.get('correct', 0), 'Aciertos') }}
+        {{ stat_box(record.get('total', 0), 'Total') }}
+        {{ stat_box(('%.1f%%'|format(record.get('pct', 0))), 'Pct', animate=False) }}
+        <div class="stat-box">
+            <span class="val streak-badge streak-{{ streaks.get('current_type', 'w')|lower }}">
+                {{ streaks.get('current_type', '-') }}{{ streaks.get('current_length', 0) }}
+            </span>
+            <span class="label">Racha</span>
+        </div>
+        <div class="stat-box">
+            <span class="val">{{ sparkline(weekly|map(attribute='pct')|list) }}</span>
+            <span class="label">Tendencia</span>
+        </div>
+    </div>
+
+    <div class="analyst-team-grid">
+        {% for t in by_team %}
+        <div class="analyst-team-cell">
+            {{ logo_img(t.logo_file, 'inline-logo-sm', t.short_name) }}
+            <span class="stat-num">{{ t.correct }}/{{ t.total }}</span>
+            <span class="analyst-team-pct">{{ '%.0f'|format(t.pct) }}%</span>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
 
 <script>
 function switchPredTab(handle) {

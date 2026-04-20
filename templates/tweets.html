@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from 'components/tweet_item.html' import tweet_item %}
+{% from 'components/empty_state.html' import empty_state %}
+{% block title %}Tweets - Torneo MVP Cuba 2011{% endblock %}
+{% block content %}
+
+<h1>Cobertura en Vivo</h1>
+<p class="section-subtitle">Reacciones de nuestros analistas a cada juego</p>
+
+{% if tweets_by_game %}
+    {% for game_num, data in tweets_by_game|dictsort(reverse=true) %}
+    <div class="game-divider">
+        <div class="game-line"></div>
+        <div class="game-label">
+            Juego #{{ game_num }} &mdash;
+            {{ data.game.away_short }} @ {{ data.game.home_short }}
+            <strong>{{ data.game.away_runs }}-{{ data.game.home_runs }}</strong>
+        </div>
+        <div class="game-line"></div>
+    </div>
+    {% for t in data.tweets %}
+    {{ tweet_item(t) }}
+    {% endfor %}
+    {% endfor %}
+{% else %}
+    {{ empty_state("La temporada aun no ha comenzado. Los tweets apareceran aqui cuando se juegue el primer partido.") }}
+{% endif %}
+
+{% endblock %}

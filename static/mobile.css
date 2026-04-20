@@ -133,6 +133,9 @@
         padding: 0 var(--space-1);
     }
 
+    /* Hide team names on mobile — logos are enough */
+    .sched-name { display: none; }
+
     /* Picks: smaller on mobile */
     .sched-pick {
         width: 16px;
@@ -175,13 +178,19 @@
         font-size: var(--text-xs);
     }
 
-    /* Starters compact */
+    .sched-moneylines {
+        padding-left: var(--space-3);
+        padding-right: var(--space-3);
+    }
+
+    /* Starters compact — tighter gaps on mobile for pitcher names */
     .sched-starters {
-        padding: 0 var(--space-3);
+        padding: 0 var(--space-1);
         flex-wrap: wrap;
         justify-content: center;
         font-size: var(--text-xs);
     }
+    .sched-starters .sched-matchup { gap: 2px; }
 
     /* Current week: less padding on mobile */
     .current-week {
@@ -228,6 +237,19 @@
     .card {
         padding: var(--space-3);
     }
+
+    /* -- Analyst accuracy grid -- */
+    .analyst-team-grid { grid-template-columns: repeat(2, 1fr); }
+    .analyst-stats-row .stat-box { min-width: 50px; }
+
+    /* -- Matchup header: logo only, no team name -- */
+    .matchup-team .team-color-bold { display: none; }
+    .matchup-header { gap: var(--space-3); }
+    .matchup-record { font-size: var(--text-2xl); }
+
+    /* -- Versus matrix: shorter cells on mobile -- */
+    .versus-matrix th,
+    .versus-matrix td { height: 52px; }
 }
 
 /* ============================================

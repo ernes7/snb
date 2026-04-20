@@ -62,6 +62,7 @@ def register_blueprints(app: Flask) -> None:
     from blueprints.antesala import antesala_bp
     from blueprints.weekly import weekly_bp
     from blueprints.periodico import periodico_bp
+    from blueprints.tweets import tweets_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(teams_bp)
@@ -77,6 +78,7 @@ def register_blueprints(app: Flask) -> None:
     app.register_blueprint(antesala_bp)
     app.register_blueprint(weekly_bp)
     app.register_blueprint(periodico_bp)
+    app.register_blueprint(tweets_bp)
 
 
 def register_error_handlers(app: Flask) -> None:

@@ -26,10 +26,6 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Claude Code
-.claude/*
-!.claude/settings.json
-
 # Project artifacts
 *.xlsx
 

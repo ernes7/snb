@@ -5,6 +5,8 @@ import sqlite3
 from typing import Any
 
 from db import get_db
+from lib.stats import PitchingLine
+from lib.utils import format_ip
 
 
 def get_schedule_games() -> list[sqlite3.Row]:
@@ -65,9 +67,9 @@ def get_unavailable_pitchers() -> dict[str, list[dict[str, Any]]]:
         for tid in (row['home_team_id'], row['away_team_id']):
             team_games.setdefault(tid, []).append(row['game_num'])
 
-    # Find the latest pitch count appearance for each pitcher
-    # (only appearances with pitches >= 10 matter for rest)
-    latest_appearances = db.execute("""
+    # Get ALL appearances (not just latest) so we can accumulate pending rest
+    # when an owner pitches a still-resting pitcher out of necessity.
+    all_appearances = db.execute("""
         SELECT ps.player_id, ps.team_id, ps.pitches, s.game_num,
             p.name
         FROM pitching_stats ps
@@ -78,16 +80,37 @@ def get_unavailable_pitchers() -> dict[str, list[dict[str, Any]]]:
         ORDER BY ps.player_id, s.game_num
     """).fetchall()
 
-    # Group by player, keep only the latest appearance
-    pitcher_last: dict[int, dict[str, Any]] = {}
-    for row in latest_appearances:
-        pid = row['player_id']
-        pitcher_last[pid] = {
-            'name': row['name'],
-            'team_id': row['team_id'],
-            'pitches': row['pitches'],
-            'game_num': row['game_num'],
-            'rest_needed': _pitches_to_rest(row['pitches']),
+    # Group appearances by pitcher (chronological order from the query).
+    pitcher_apps: dict[int, list[dict[str, Any]]] = {}
+    for row in all_appearances:
+        pitcher_apps.setdefault(row['player_id'], []).append(dict(row))
+
+    # Walk each pitcher's history to compute pending_rest at their last appearance.
+    # Rule: if a pitcher pitches while still needing rest, the new rest stacks
+    # on top of whatever rest was still owed.
+    pitcher_state: dict[int, dict[str, Any]] = {}
+    for pid, apps in pitcher_apps.items():
+        tid = apps[0]['team_id']
+        tg = team_games.get(tid, [])
+        pending = 0
+        prev_game: int | None = None
+        for a in apps:
+            gn = a['game_num']
+            if prev_game is not None:
+                # Count team games elapsed between appearances. The new appearance
+                # itself "consumes" a rest slot — the pitcher was supposed to be
+                # resting that game but pitched instead, so it counts toward
+                # satisfying the previous rest requirement.
+                games_between = sum(1 for g in tg if prev_game < g <= gn)
+                pending = max(0, pending - games_between)
+            pending += _pitches_to_rest(a['pitches'])
+            prev_game = gn
+        pitcher_state[pid] = {
+            'name': apps[-1]['name'],
+            'team_id': tid,
+            'pitches': apps[-1]['pitches'],
+            'game_num': prev_game,
+            'rest_needed': pending,
         }
 
     # Find unplayed games
@@ -108,7 +131,7 @@ def get_unavailable_pitchers() -> dict[str, list[dict[str, Any]]]:
             unavailable = []
             tg = team_games.get(tid, [])
 
-            for pid, info in pitcher_last.items():
+            for pid, info in pitcher_state.items():
                 if info['team_id'] != tid:
                     continue
                 appeared_gnum = info['game_num']
@@ -128,10 +151,10 @@ def get_unavailable_pitchers() -> dict[str, list[dict[str, Any]]]:
     return result
 
 
-def get_probable_starters() -> dict[str, str]:
-    """Get probable starting pitcher for each upcoming game + team.
+def get_probable_starters() -> dict[str, dict[str, Any]]:
+    """Get probable starting pitcher + season stats for each upcoming game + team.
 
-    Returns dict keyed by '{schedule_id}_{team_id}' → pitcher name.
+    Returns dict keyed by '{schedule_id}_{team_id}' → {name, W, L, IP, ERA}.
     """
     from services.weekly import _get_best_available_pitcher
     db = get_db()
@@ -145,14 +168,30 @@ def get_probable_starters() -> dict[str, str]:
         ORDER BY s.game_num
     """).fetchall()
 
-    result: dict[str, str] = {}
+    result: dict[str, dict[str, Any]] = {}
     for game in unplayed:
         for tid in (game["home_team_id"], game["away_team_id"]):
-            _, name = _get_best_available_pitcher(
+            _, name, pid = _get_best_available_pitcher(
                 db, tid, game["week_num"], unavailable,
             )
-            if name:
-                result[f"{game['schedule_id']}_{tid}"] = name
+            if not name or not pid:
+                continue
+            row = db.execute("""
+                SELECT SUM(IP_outs) AS IP_outs, SUM(H) AS H, SUM(R) AS R,
+                    SUM(ER) AS ER, SUM(BB) AS BB, SUM(SO) AS SO,
+                    SUM(HR_allowed) AS HR_allowed,
+                    SUM(W) AS W, SUM(L) AS L, SUM(SV) AS SV
+                FROM pitching_stats WHERE player_id = ?
+            """, (pid,)).fetchone()
+            line = PitchingLine.from_row(row)
+            result[f"{game['schedule_id']}_{tid}"] = {
+                "player_id": pid,
+                "name": name,
+                "W": line.W,
+                "L": line.L,
+                "IP": format_ip(line.IP_outs),
+                "ERA": line.ERA,
+            }
     return result
 
 
@@ -182,3 +221,25 @@ def get_games_of_week() -> set[int]:
         "SELECT game_of_week_id FROM weekly_awards WHERE game_of_week_id IS NOT NULL"
     ).fetchall()
     return {r["game_of_week_id"] for r in rows}
+
+
+def get_moneylines_for_schedule() -> dict[int, list[dict[str, Any]]]:
+    """Get player moneylines keyed by schedule_id for display.
+
+    Returns {schedule_id: [{prop_text, prop_type, player_name, team_short,
+    team_color, slot}]} sorted by slot.
+    """
+    db = get_db()
+    rows = db.execute("""
+        SELECT m.schedule_id, m.prop_text, m.prop_type, m.slot,
+            p.name AS player_name, t.short_name AS team_short,
+            t.color_primary AS team_color
+        FROM game_moneylines m
+        JOIN players p ON m.player_id = p.id
+        JOIN teams t ON m.team_id = t.id
+        ORDER BY m.schedule_id, m.slot
+    """).fetchall()
+    result: dict[int, list[dict[str, Any]]] = {}
+    for r in rows:
+        result.setdefault(r["schedule_id"], []).append(dict(r))
+    return result

@@ -11,7 +11,7 @@ def _parse_linescore(s: str | None) -> list[int]:
     """Parse "1,0,1,0,0,0,2,0,1" → [1,0,1,0,0,0,2,0,1]. Empty/None → []."""
     if not s:
         return []
-    return [int(x) for x in s.split(",") if x.strip()]
+    return [int(x) for x in s.split(",") if x.strip() and x.strip() != "X"]
 
 
 def build_versus_matrix() -> dict[str, Any]:
@@ -143,6 +143,77 @@ def get_inning_differential() -> dict[int, list[int]]:
             diff[r["a"]][i] += a - h
 
     return diff
+
+
+def build_matchup_page(team_a, team_b) -> dict[str, Any]:
+    """Return played games (with parsed linescores), upcoming schedule,
+    and H2H record for two teams."""
+    db = get_db()
+    a_id, b_id = team_a.id, team_b.id
+
+    played_rows = db.execute("""
+        SELECT g.id, s.game_num, s.week_num,
+               s.home_team_id, s.away_team_id,
+               g.home_runs, g.away_runs, g.home_hits, g.away_hits,
+               g.home_errors, g.away_errors,
+               g.home_linescore, g.away_linescore,
+               wp.name AS wp_name, lp.name AS lp_name, sp.name AS sv_name
+        FROM games g
+        JOIN schedule s ON g.schedule_id = s.id
+        LEFT JOIN players wp ON g.winning_pitcher_id = wp.id
+        LEFT JOIN players lp ON g.losing_pitcher_id = lp.id
+        LEFT JOIN players sp ON g.save_pitcher_id = sp.id
+        WHERE s.phase = 'regular'
+          AND ((s.home_team_id = ? AND s.away_team_id = ?)
+            OR (s.home_team_id = ? AND s.away_team_id = ?))
+          AND g.home_runs IS NOT NULL
+        ORDER BY s.game_num
+    """, (a_id, b_id, b_id, a_id)).fetchall()
+
+    teams_by_id = {team_a.id: team_a, team_b.id: team_b}
+    played = []
+    for r in played_rows:
+        home = teams_by_id[r["home_team_id"]]
+        away = teams_by_id[r["away_team_id"]]
+        home_ls = _parse_linescore(r["home_linescore"])
+        away_ls = _parse_linescore(r["away_linescore"])
+        innings = max(len(home_ls), len(away_ls), 9)
+        played.append({
+            "game_num": r["game_num"], "week_num": r["week_num"],
+            "home": home, "away": away,
+            "home_ls": home_ls, "away_ls": away_ls,
+            "home_runs": r["home_runs"], "away_runs": r["away_runs"],
+            "home_hits": r["home_hits"], "away_hits": r["away_hits"],
+            "home_errors": r["home_errors"], "away_errors": r["away_errors"],
+            "innings": innings,
+            "wp_name": r["wp_name"], "lp_name": r["lp_name"],
+            "sv_name": r["sv_name"],
+        })
+
+    upcoming_rows = db.execute("""
+        SELECT s.game_num, s.week_num, s.home_team_id, s.away_team_id
+        FROM schedule s
+        LEFT JOIN games g ON g.schedule_id = s.id
+        WHERE s.phase = 'regular'
+          AND ((s.home_team_id = ? AND s.away_team_id = ?)
+            OR (s.home_team_id = ? AND s.away_team_id = ?))
+          AND g.id IS NULL
+        ORDER BY s.game_num
+    """, (a_id, b_id, b_id, a_id)).fetchall()
+
+    upcoming = []
+    for r in upcoming_rows:
+        upcoming.append({
+            "game_num": r["game_num"], "week_num": r["week_num"],
+            "home": teams_by_id[r["home_team_id"]],
+            "away": teams_by_id[r["away_team_id"]],
+        })
+
+    return {
+        "team_a": team_a, "team_b": team_b,
+        "h2h": team_a.h2h_vs(team_b),
+        "played": played, "upcoming": upcoming,
+    }
 
 
 def build_versus_page() -> dict[str, Any]:

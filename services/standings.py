@@ -66,7 +66,7 @@ def _tiebreak_values(
 def get_standings() -> list[dict[str, Any]]:
     """Compute league standings with tiebreakers.
 
-    Sort order: win% desc → in-group tiebreaker desc → overall run diff desc.
+    Sort order: win% → in-group tiebreaker → sub-tie H2H → overall run diff → runs scored.
     Output shape: list of dicts with every `teams` column plus
     `wins, losses, pct, rs, ra, diff, gb` — consumed by templates as
     `stats.wins` / `stats.pct` / etc.
@@ -102,16 +102,33 @@ def get_standings() -> list[dict[str, Any]]:
     for s in standings:
         groups[s["_pct"]].append(s["id"])
 
-    tb: dict[int, tuple[int, int]] = {s["id"]: (0, 0) for s in standings}
+    tb: dict[int, tuple[int, int, int]] = {s["id"]: (0, 0, 0) for s in standings}
     for _pct, ids in groups.items():
         if len(ids) > 1:
-            tb.update(_tiebreak_values(ids, games, owners))
+            raw = _tiebreak_values(ids, games, owners)
+            for tid in ids:
+                tb[tid] = (raw[tid][0], raw[tid][1], 0)
+
+    for _pct, ids in groups.items():
+        if len(ids) <= 2:
+            continue
+        by_tb1: dict[int, list[int]] = defaultdict(list)
+        for tid in ids:
+            by_tb1[tb[tid][0]].append(tid)
+        for sub_ids in by_tb1.values():
+            if len(sub_ids) == 2:
+                sub = _tiebreak_values(sub_ids, games, owners)
+                for tid in sub_ids:
+                    tb[tid] = (tb[tid][0], sub[tid][0], sub[tid][1])
 
     for s in standings:
-        s["_tb1"], s["_tb2"] = tb[s["id"]]
+        s["_tb1"], s["_tb2"], s["_tb3"] = tb[s["id"]]
 
     standings.sort(
-        key=lambda x: (-x["_pct"], -x["_tb1"], -x["_tb2"], -x["diff"], x["id"])
+        key=lambda x: (
+            -x["_pct"], -x["_tb1"], -x["_tb2"], -x["_tb3"],
+            -x["diff"], -x["rs"],
+        )
     )
 
     if standings and (standings[0]["wins"] + standings[0]["losses"]) > 0:
@@ -127,6 +144,25 @@ def get_standings() -> list[dict[str, Any]]:
         s.pop("_pct", None)
         s.pop("_tb1", None)
         s.pop("_tb2", None)
+        s.pop("_tb3", None)
+
+    # Magic number (top 4 clinch) / elimination number (bottom 4)
+    GAMES_PER_TEAM = 24
+    if len(standings) >= 5:
+        best_5th_max = max(
+            GAMES_PER_TEAM - s["losses"] for s in standings[4:]
+        )
+        fourth_wins = standings[3]["wins"]
+        for i, s in enumerate(standings):
+            if i < 4:
+                nm = best_5th_max - s["wins"] + 1
+                s["magic"] = "y" if nm <= 0 else str(nm)
+            else:
+                ne = (GAMES_PER_TEAM - s["losses"]) - fourth_wins + 1
+                s["magic"] = "e" if ne <= 0 else str(ne)
+    else:
+        for s in standings:
+            s["magic"] = "-"
 
     return standings
 
