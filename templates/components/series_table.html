@@ -3,7 +3,11 @@
 <h2>{{ title }}</h2>
 <div class="series-card">
     {% if games and games[0].home_name %}
-        <h3>{{ games[0].home_name }} vs {{ games[0].away_name }}</h3>
+        <h3>
+            <a href="{{ url_for('teams.team', short=games[0].home_short) }}" class="team-color-bold" style="--team-color: {{ games[0].home_color }}">{{ games[0].home_name }}</a>
+            vs
+            <a href="{{ url_for('teams.team', short=games[0].away_short) }}" class="team-color-bold" style="--team-color: {{ games[0].away_color }}">{{ games[0].away_name }}</a>
+        </h3>
     {% else %}
         <h3 class="game-unplayed">Por definir</h3>
     {% endif %}
@@ -17,7 +21,7 @@
             <td>{{ g.away_short or '—' }}</td>
             {% if g.home_runs is not none %}
             <td class="num">{{ g.home_runs }}-{{ g.away_runs }}</td>
-            <td>{{ g.wp_name or '' }}</td>
+            <td>{% if g.wp_name and g.wp_id %}<a href="{{ url_for('players.player', player_id=g.wp_id) }}">{{ g.wp_name }}</a>{% elif g.wp_name %}{{ g.wp_name }}{% endif %}</td>
             {% else %}
             <td class="num game-unplayed">—</td>
             <td></td>

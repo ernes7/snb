@@ -48,7 +48,7 @@
 </div>
 
 <div class="text-muted mb-4">
-    {{ pitcher_credits(game.wp_name, game.lp_name, game.sv_name) }}
+    {{ pitcher_credits(game.wp_name, game.lp_name, game.sv_name, wp_id=game.winning_pitcher_id, lp_id=game.losing_pitcher_id, sv_id=game.save_pitcher_id, linkable=true) }}
 </div>
 
 {# --- Batting --- #}

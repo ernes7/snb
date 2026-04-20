@@ -10,6 +10,7 @@ def get_series(phase: str) -> list[sqlite3.Row]:
     """Get all games for a playoff series phase."""
     return get_db().execute("""
         SELECT s.*, g.home_runs, g.away_runs, g.date, g.id as game_id,
+            g.winning_pitcher_id as wp_id,
             ht.name as home_name, ht.short_name as home_short,
             ht.color_primary as home_color, ht.logo_file as home_logo,
             at.name as away_name, at.short_name as away_short,

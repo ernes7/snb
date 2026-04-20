@@ -14,6 +14,7 @@ def get_schedule_games() -> list[sqlite3.Row]:
     return get_db().execute("""
         SELECT s.*, g.home_runs, g.away_runs, g.home_hits, g.away_hits,
             g.home_errors, g.away_errors, g.date, g.id as game_id,
+            g.winning_pitcher_id as wp_id, g.losing_pitcher_id as lp_id,
             ht.name as home_name, ht.short_name as home_short, ht.owner as home_owner,
             ht.color_primary as home_color, ht.logo_file as home_logo,
             at.name as away_name, at.short_name as away_short, at.owner as away_owner,
@@ -139,6 +140,7 @@ def get_unavailable_pitchers() -> dict[str, list[dict[str, Any]]]:
                 games_rested = sum(1 for gn in tg if appeared_gnum < gn < gnum)
                 if games_rested < info['rest_needed']:
                     unavailable.append({
+                        'player_id': pid,
                         'name': info['name'],
                         'pitches': info['pitches'],
                         'rest_games': info['rest_needed'],
@@ -242,4 +244,48 @@ def get_moneylines_for_schedule() -> dict[int, list[dict[str, Any]]]:
     result: dict[int, list[dict[str, Any]]] = {}
     for r in rows:
         result.setdefault(r["schedule_id"], []).append(dict(r))
+    return result
+
+
+def get_team_pitchers_with_stats() -> dict[int, list[dict[str, Any]]]:
+    """All rotation + bullpen pitchers per team with season stats.
+
+    Returns {team_id: [{player_id, name, role, IP, ERA, WHIP, W, L, SV}]}
+    sorted rotation-first then by ERA within role.
+    """
+    db = get_db()
+    rows = db.execute("""
+        SELECT p.id AS player_id, p.name, p.team_id, p.role,
+            COALESCE(SUM(ps.IP_outs), 0) AS IP_outs,
+            COALESCE(SUM(ps.H), 0) AS H,
+            COALESCE(SUM(ps.R), 0) AS R,
+            COALESCE(SUM(ps.ER), 0) AS ER,
+            COALESCE(SUM(ps.BB), 0) AS BB,
+            COALESCE(SUM(ps.SO), 0) AS SO,
+            COALESCE(SUM(ps.HR_allowed), 0) AS HR_allowed,
+            COALESCE(SUM(ps.W), 0) AS W,
+            COALESCE(SUM(ps.L), 0) AS L,
+            COALESCE(SUM(ps.SV), 0) AS SV
+        FROM players p
+        LEFT JOIN pitching_stats ps ON ps.player_id = p.id
+        WHERE p.role IN ('rotation', 'bullpen')
+        GROUP BY p.id
+        ORDER BY p.team_id,
+            CASE p.role WHEN 'rotation' THEN 0 ELSE 1 END,
+            p.lineup_order
+    """).fetchall()
+    result: dict[int, list[dict[str, Any]]] = {}
+    for r in rows:
+        line = PitchingLine.from_row(r)
+        result.setdefault(r["team_id"], []).append({
+            "player_id": r["player_id"],
+            "name": r["name"],
+            "role": r["role"],
+            "IP": format_ip(line.IP_outs),
+            "ERA": line.ERA,
+            "WHIP": line.WHIP,
+            "W": line.W,
+            "L": line.L,
+            "SV": line.SV,
+        })
     return result

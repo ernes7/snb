@@ -32,8 +32,8 @@
     <div class="flex-center gap-3">
         {{ logo_img(potw_player.logo_file, 'inline-logo') }}
         <div>
-            <strong>{{ potw_player.name }}</strong>
-            <span class="text-muted text-sm">({{ potw_player.short_name }})</span>
+            <strong><a href="{{ url_for('players.player', player_id=potw_player.id) }}">{{ potw_player.name }}</a></strong>
+            <span class="text-muted text-sm">(<a href="{{ url_for('teams.team', short=potw_player.short_name) }}">{{ potw_player.short_name }}</a>)</span>
             {% if potw_summary %}
             <div class="text-muted text-sm mt-1">{{ potw_summary }}</div>
             {% endif %}

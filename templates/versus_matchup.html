@@ -7,14 +7,14 @@
 <div class="matchup-header">
     <div class="matchup-team matchup-team-left" style="--team-color: {{ team_a.color_primary }};">
         {{ logo_img(team_a.logo_file, 'inline-logo', team_a.short_name) }}
-        <span class="team-color-bold">{{ team_a.name }}</span>
+        <a href="{{ url_for('teams.team', short=team_a.short_name) }}" class="team-color-bold">{{ team_a.name }}</a>
     </div>
     <div class="matchup-vs">
         <span class="stat-num matchup-record">{{ h2h.wins }}-{{ h2h.losses }}</span>
     </div>
     <div class="matchup-team matchup-team-right" style="--team-color: {{ team_b.color_primary }};">
         {{ logo_img(team_b.logo_file, 'inline-logo', team_b.short_name) }}
-        <span class="team-color-bold">{{ team_b.name }}</span>
+        <a href="{{ url_for('teams.team', short=team_b.short_name) }}" class="team-color-bold">{{ team_b.name }}</a>
     </div>
 </div>
 
@@ -65,7 +65,7 @@
     </table>
     </div>
     <div class="matchup-game-footer text-muted">
-        {{ pitcher_credits(g.wp_name, g.lp_name, g.sv_name) }}
+        {{ pitcher_credits(g.wp_name, g.lp_name, g.sv_name, wp_id=g.wp_id, lp_id=g.lp_id, sv_id=g.sv_id, linkable=true) }}
     </div>
 </div>
 {% endfor %}
@@ -84,10 +84,10 @@
             <span class="matchup-upcoming-week">Semana {{ g.week_num }}</span>
             <span class="matchup-upcoming-teams">
                 {{ logo_img(g.away.logo_file, 'inline-logo-sm', g.away.short_name) }}
-                <span class="team-color-bold" style="--team-color: {{ g.away.color_primary }}">{{ g.away.short_name }}</span>
+                <a href="{{ url_for('teams.team', short=g.away.short_name) }}" class="team-color-bold" style="--team-color: {{ g.away.color_primary }}">{{ g.away.short_name }}</a>
                 <span class="text-muted">@</span>
                 {{ logo_img(g.home.logo_file, 'inline-logo-sm', g.home.short_name) }}
-                <span class="team-color-bold" style="--team-color: {{ g.home.color_primary }}">{{ g.home.short_name }}</span>
+                <a href="{{ url_for('teams.team', short=g.home.short_name) }}" class="team-color-bold" style="--team-color: {{ g.home.color_primary }}">{{ g.home.short_name }}</a>
             </span>
         </li>
         {% endfor %}

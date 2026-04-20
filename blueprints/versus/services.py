@@ -157,6 +157,8 @@ def build_matchup_page(team_a, team_b) -> dict[str, Any]:
                g.home_runs, g.away_runs, g.home_hits, g.away_hits,
                g.home_errors, g.away_errors,
                g.home_linescore, g.away_linescore,
+               g.winning_pitcher_id AS wp_id, g.losing_pitcher_id AS lp_id,
+               g.save_pitcher_id AS sv_id,
                wp.name AS wp_name, lp.name AS lp_name, sp.name AS sv_name
         FROM games g
         JOIN schedule s ON g.schedule_id = s.id
@@ -188,6 +190,7 @@ def build_matchup_page(team_a, team_b) -> dict[str, Any]:
             "innings": innings,
             "wp_name": r["wp_name"], "lp_name": r["lp_name"],
             "sv_name": r["sv_name"],
+            "wp_id": r["wp_id"], "lp_id": r["lp_id"], "sv_id": r["sv_id"],
         })
 
     upcoming_rows = db.execute("""

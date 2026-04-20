@@ -12,6 +12,7 @@ from .services import (
     get_schedule_games, get_unavailable_pitchers,
     get_game_picks_for_schedule, get_games_of_week,
     get_probable_starters, get_moneylines_for_schedule,
+    get_team_pitchers_with_stats,
 )
 
 
@@ -35,9 +36,16 @@ def schedule() -> str:
         lazo_top[entry.player_id] = 'lazo-top3' if idx < 3 else 'lazo-top10'
 
     moneylines = get_moneylines_for_schedule()
+    team_pitchers = get_team_pitchers_with_stats()
+    unavailable_ids = {
+        key: {p['player_id'] for p in pitchers}
+        for key, pitchers in unavailable.items()
+    }
 
     return render_template('schedule.html', weeks=weeks, played=played,
                            unavailable=unavailable, picks=picks,
                            games_of_week=games_of_week, starters=starters,
                            current_week=current_week, lazo_top=lazo_top,
-                           moneylines=moneylines)
+                           moneylines=moneylines,
+                           team_pitchers=team_pitchers,
+                           unavailable_ids=unavailable_ids)

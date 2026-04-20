@@ -250,6 +250,11 @@
     /* -- Versus matrix: shorter cells on mobile -- */
     .versus-matrix th,
     .versus-matrix td { height: 52px; }
+
+    /* -- Pitcher modal: stack columns -- */
+    .pm-matchup { grid-template-columns: 1fr; }
+    .modal-content-wide { max-width: 100%; }
+    .pm-roster + .pm-roster { border-top: 1px solid var(--border); padding-top: var(--space-2); }
 }
 
 /* ============================================

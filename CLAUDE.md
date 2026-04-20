@@ -4,6 +4,8 @@ Baseball tournament tracker for a simulated Cuban National Series season played 
 
 **League rules (tiebreakers, awards, draft, playoffs) live in [RULES.md](RULES.md).**
 
+**CAV is Ciego de Avila, NOT Camagüey.**
+
 ## Stack
 
 - **Flask** with app factory pattern (`create_app()`) and **Blueprints**
